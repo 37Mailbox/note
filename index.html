@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smartisan Cloud Lite</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- 引入 LeanCloud SDK -->
+    <script src="https://unpkg.com/leancloud-storage@4.15.0/dist/av-min.js"></script>
+    
+    <style>
+        /* --- 样式保持之前的沉浸版不变 --- */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: -apple-system, "PingFang SC", sans-serif; background: #3d3d3d; overflow: hidden; }
+        #app { display: flex; height: 100vh; width: 100vw; position: relative; }
+        
+        /* 侧边栏 */
+        .sidebar { width: 280px; background: #2d2d2d; color: #bbb; display: flex; flex-direction: column; border-right: 1px solid #222; z-index: 10; transition: transform 0.3s ease; flex-shrink: 0; }
+        .sidebar-header { padding: 15px 20px; border-bottom: 1px solid #444; background: #2d2d2d; display: flex; justify-content: space-between; align-items: center; }
+        .app-title { font-weight: 600; color: #eee; letter-spacing: 1px; }
+        .new-btn { background: #d95e48; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; }
+        .note-list { flex: 1; overflow-y: auto; }
+        .note-item { padding: 18px 20px; border-bottom: 1px solid #3a3a3a; cursor: pointer; transition: 0.2s; position: relative; }
+        .note-item.active { background: #404040; }
+        .note-item.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #d95e48; }
+        .note-preview-title { color: #eee; font-size: 15px; font-weight: bold; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .note-preview-date { font-size: 12px; color: #666; display: flex; justify-content: space-between;}
+        
+        /* 主区域 */
+        .main-area { flex: 1; background: #e0e0e0; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+        .mobile-nav { width: 100%; height: 50px; background: #f8f8f8; border-bottom: 1px solid #ddd; display: none; align-items: center; padding: 0 15px; z-index: 50; justify-content: space-between; flex-shrink: 0; }
+        .back-btn { border: none; background: transparent; color: #d95e48; font-weight: bold; font-size: 16px; cursor: pointer; }
+        .save-status { font-size: 12px; color: #999; transition: color 0.3s; }
+        .save-status.saving { color: #d95e48; }
+
+        /* 编辑器 */
+        .editor-wrapper { flex: 1; width: 100%; display: flex; justify-content: center; overflow-y: auto; overflow-x: hidden; padding: 30px 0 100px 0; }
+        .paper-sheet { width: 100%; max-width: 600px; min-height: 800px; height: fit-content; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; flex-direction: column; position: relative; transition: background 0.3s; border-radius: 4px; }
+        .paper-header { padding: 35px 40px 10px 40px; flex-shrink: 0; }
+        .input-title { width: 100%; border: none; background: transparent; outline: none; font-size: 28px; font-weight: bold; padding-bottom: 15px; border-bottom: 1px solid rgba(0,0,0,0.05); color: inherit; }
+        .input-author { width: 100%; border: none; background: transparent; outline: none; font-size: 14px; opacity: 0.6; margin-top: 10px; color: inherit; letter-spacing: 1px; }
+        .paper-body { flex: 1; padding: 10px 40px 50px 40px; cursor: text; display: flex; flex-direction: column; }
+        .input-content { width: 100%; border: none; background: transparent; outline: none; resize: none; font-size: 20px; line-height: 2.0; color: inherit; font-family: inherit; overflow: hidden; min-height: 400px; padding-bottom: 150px; }
+
+        /* 工具栏 */
+        .toolbar-dock { position: absolute; bottom: 30px; right: 30px; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; z-index: 100; }
+        .tool-row { display: flex; gap: 15px; }
+        .fab { width: 50px; height: 50px; border-radius: 50%; border: none; background: white; color: #555; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; }
+        .fab:hover { transform: scale(1.08); background: #fcfcfc; }
+        .fab.primary { background: #d95e48; color: white; }
+        
+        /* 样式面板 */
+        .style-panel { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); margin-bottom: 10px; width: 240px; }
+        .panel-row { margin-bottom: 12px; }
+        .panel-label { font-size: 12px; color: #888; margin-bottom: 6px; display: block; font-weight: bold; }
+        .theme-grid { display: flex; gap: 8px; }
+        .theme-opt { flex: 1; height: 36px; border-radius: 6px; border: 1px solid #eee; cursor: pointer; position: relative; }
+        .theme-opt.active { border: 2px solid #d95e48; }
+        .select-box { width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
+
+        /* 主题定义 */
+        .theme-white { background-color: #ffffff; color: #333; }
+        .theme-grid { background-color: #f7f9fc; color: #2c3e50; background-image: linear-gradient(#e6e9ef 1px, transparent 1px), linear-gradient(90deg, #e6e9ef 1px, transparent 1px); background-size: 30px 30px; background-attachment: local; }
+        .theme-retro { background-color: #fdf6e3; color: #5c4b37; background-image: radial-gradient(#d6ceaa 1px, transparent 1px); background-size: 20px 20px; background-attachment: local; }
+        .theme-dark { background-color: #222; color: #ccc; background-image: linear-gradient(#333 1px, transparent 1px); background-size: 100% 30px; background-attachment: local; }
+        .theme-dark .input-title { border-bottom-color: #444; }
+
+        .font-sans { font-family: -apple-system, "PingFang SC", sans-serif; }
+        .font-serif { font-family: "Songti SC", "Noto Serif SC", serif; letter-spacing: 0.5px; }
+        .font-kai { font-family: "Kaiti SC", "KaiTi", serif; }
+        .font-round { font-family: "YouYuan", "Varela Round", sans-serif; }
+
+        #staging-area { position: fixed; left: 200%; top: 0; width: 600px; pointer-events: none; opacity: 0; }
+        .loading-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.85); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999; }
+        
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; position: absolute; height: 100%; }
+            .main-area { width: 100%; height: 100%; position: absolute; background: #f0f0f0; }
+            .mobile-nav { display: flex; }
+            .editor-wrapper { padding: 0; background: transparent; }
+            .paper-sheet { box-shadow: none; border-radius: 0; width: 100%; max-width: none; min-height: calc(100vh - 50px); flex-grow: 1; }
+            .show-list .sidebar { transform: translateX(0); }
+            .show-list .main-area { transform: translateX(100%); }
+            .show-editor .sidebar { transform: translateX(-100%); }
+            .show-editor .main-area { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app" :class="viewModeClass">
+    <div class="loading-mask" v-if="isLoading || isGenerating">
+        <div style="font-size: 30px; margin-bottom: 20px;">
+            {{ isGenerating ? '✨' : '☁️' }}
+        </div>
+        <h3>{{ isGenerating ? '正在生成长图...' : '正在同步云端...' }}</h3>
+        <p style="margin-top: 10px; opacity: 0.7; font-size: 14px;">{{ statusMsg }}</p>
+    </div>
+
+    <!-- 侧边栏 -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <span class="app-title">云端便签</span>
+            <button class="new-btn" @click="createCloudNote">新建</button>
+        </div>
+        <div class="note-list">
+            <div class="note-item" v-for="note in notes" :key="note.id" 
+                 :class="{ active: currentNote && currentNote.id === note.id }"
+                 @click="selectNote(note)">
+                <div class="note-preview-title">{{ note.attributes.title || '无标题' }}</div>
+                <div class="note-preview-date">
+                    <span>{{ formatTime(note.updatedAt) }}</span>
+                    <!-- 显示一个小云朵图标表示已同步 -->
+                    <span v-if="!note.hasPendingChanges">☁️</span>
+                    <span v-else>🕒</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主编辑区 -->
+    <div class="main-area">
+        <div class="mobile-nav">
+            <button class="back-btn" @click="backToList">⬅️ 列表</button>
+            <span class="save-status" :class="{ saving: isSaving }">
+                {{ isSaving ? '同步中...' : '已同步' }}
+            </span>
+        </div>
+
+        <div class="editor-wrapper" v-if="currentNote">
+        <div class="paper-sheet" 
+     :class="[currentNote.attributes.theme || 'theme-white', currentNote.attributes.font || 'font-sans']"
+         @click="focusBody">
+                <div class="paper-header">
+                    <input class="input-title" v-model="currentNote.attributes.title" @input="triggerSave" placeholder="输入标题" maxlength="50">
+                    <input class="input-author" v-model="currentNote.attributes.author" @input="triggerSave" placeholder="作者署名 (可选)">
+                </div>
+                <div class="paper-body">
+                    <textarea ref="textareaRef" class="input-content" 
+                        v-model="currentNote.attributes.content" @input="handleInput"
+                        placeholder="点击此处输入正文..."></textarea>
+                </div>
+                <div style="text-align:center; padding: 20px; opacity:0.1; font-size:12px; letter-spacing:2px; font-weight:bold; pointer-events:none;">SMARTISAN NOTES</div>
+            </div>
+        </div>
+
+        <div class="toolbar-dock" v-if="currentNote">
+            <div class="style-panel" v-if="showStylePanel">
+                <div class="panel-row">
+                    <span class="panel-label">信纸主题</span>
+                    <div class="theme-grid">
+                        <div class="theme-opt" style="background:#fff" @click="updateStyle('theme', 'theme-white')" :class="{active: currentNote.attributes.theme=='theme-white'}"></div>
+                        <div class="theme-opt" style="background:#f7f9fc" @click="updateStyle('theme', 'theme-grid')" :class="{active: currentNote.attributes.theme=='theme-grid'}"></div>
+                        <div class="theme-opt" style="background:#fdf6e3" @click="updateStyle('theme', 'theme-retro')" :class="{active: currentNote.attributes.theme=='theme-retro'}"></div>
+                        <div class="theme-opt" style="background:#333" @click="updateStyle('theme', 'theme-dark')" :class="{active: currentNote.attributes.theme=='theme-dark'}"></div>
+                    </div>
+                </div>
+                <div class="panel-row">
+                    <span class="panel-label">字体风格</span>
+                    <select class="select-box" :value="currentNote.attributes.font" @change="e => updateStyle('font', e.target.value)">
+                        <option value="font-sans">黑体 (现代)</option>
+                        <option value="font-serif">宋体 (人文)</option>
+                        <option value="font-kai">楷体 (手写)</option>
+                        <option value="font-round">圆体 (可爱)</option>
+                    </select>
+                </div>
+                <div class="panel-row">
+                    <span class="panel-label">生成切分</span>
+                    <select class="select-box" v-model="splitCount">
+                        <option :value="1">生成 1 张长图</option>
+                        <option :value="2">自动切分 2 张</option>
+                        <option :value="3">自动切分 3 张</option>
+                    </select>
+                </div>
+            </div>
+            <div class="tool-row">
+                <button class="fab danger" @click="deleteCloudNote">🗑️</button>
+                <button class="fab" @click="showStylePanel = !showStylePanel">🎨</button>
+                <button class="fab primary" @click="generateImage">✨</button>
+            </div>
+        </div>
+    </div>
+    <div id="staging-area"></div>
+</div>
+
+<script>
+    const { createApp, ref, computed, nextTick, onMounted } = Vue;
+
+    // --- ⭐ 配置区域：请替换为你自己的 LeanCloud 密钥 ⭐ ---
+    const CONFIG = {
+        appId: 'E1rPatvQJfGDx7FnsXpGTHN1-gzGzoHsz',       // 例如: 'AbCdEfG...'
+        appKey: 'eqfKH55tCL5dh3oWqF0KkomM',     // 例如: '123456...'
+        serverURL: 'https://e1rpatvq.lc-cn-n1-shared.com' // 例如: 'https://abcd.api.lncldglobal.com'
+    };
+
+    createApp({
+        setup() {
+            // State
+            const notes = ref([]);
+            const currentNote = ref(null);
+            const showStylePanel = ref(false);
+            const isGenerating = ref(false);
+            const isLoading = ref(false);
+            const isSaving = ref(false); // 保存状态
+            const statusMsg = ref('');
+            const splitCount = ref(1);
+            const textareaRef = ref(null);
+            
+            const isMobile = window.innerWidth <= 768;
+            const viewMode = ref(isMobile ? 'list' : 'editor');
+
+            // Timer for Debounce
+            let saveTimer = null;
+
+            // --- 1. LeanCloud 初始化 ---
+            const initLeanCloud = () => {
+                if (!AV.applicationId) {
+                    AV.init({
+                        appId: CONFIG.appId,
+                        appKey: CONFIG.appKey,
+                        serverURL: CONFIG.serverURL
+                    });
+                }
+            };
+
+            // --- 2. 核心：云端 CRUD ---
+            
+            // 拉取列表
+            const fetchNotes = async () => {
+                isLoading.value = true;
+                statusMsg.value = '正在拉取云端笔记...';
+                try {
+                    const query = new AV.Query('Note');
+                    query.descending('updatedAt'); // 按更新时间倒序
+                    const results = await query.find();
+                    // 这里直接使用 LeanCloud 的 AV.Object
+                    notes.value = results; 
+                    
+                    if (notes.value.length === 0) {
+                        // 如果云端没数据，自动创建一个
+                        await createCloudNote();
+                    } else if (!isMobile) {
+                        selectNote(notes.value[0]);
+                    }
+                } catch (error) {
+                    alert('数据拉取失败，请检查密钥或网络: ' + error.message);
+                } finally {
+                    isLoading.value = false;
+                }
+            };
+
+            // 新建笔记
+            const createCloudNote = async () => {
+                isLoading.value = true;
+                statusMsg.value = '正在创建...';
+                try {
+                    const Note = AV.Object.extend('Note');
+                    const note = new Note();
+                    note.set('title', '');
+                    note.set('content', '');
+                    note.set('author', '');
+                    note.set('theme', 'theme-white');
+                    note.set('font', 'font-sans');
+                    
+                    const savedNote = await note.save();
+                    notes.value.unshift(savedNote); // 添加到列表头部
+                    selectNote(savedNote);
+                } catch (e) {
+                    alert('创建失败: ' + e.message);
+                } finally {
+                    isLoading.value = false;
+                }
+            };
+
+            // 删除笔记
+            const deleteCloudNote = async () => {
+                if(!confirm('确定永久删除这条云端便签吗？')) return;
+                isLoading.value = true;
+                statusMsg.value = '正在删除...';
+                try {
+                    await currentNote.value.destroy();
+                    // 从本地列表移除
+                    const idx = notes.value.findIndex(n => n.id === currentNote.value.id);
+                    if(idx > -1) notes.value.splice(idx, 1);
+                    
+                    if(notes.value.length === 0) await createCloudNote();
+                    else if (isMobile) backToList();
+                    else selectNote(notes.value[0]);
+                } catch (e) {
+                    alert('删除失败: ' + e.message);
+                } finally {
+                    isLoading.value = false;
+                }
+            };
+
+            // --- 3. 核心：防抖自动保存 ---
+            const triggerSave = () => {
+                if (!currentNote.value) return;
+                
+                // 标记为“有未保存更改”
+                currentNote.value.hasPendingChanges = true;
+                isSaving.value = true;
+
+                // 清除上一次计时器
+                if (saveTimer) clearTimeout(saveTimer);
+
+                // 1.5秒后执行真正的云端保存
+                saveTimer = setTimeout(async () => {
+                    try {
+                        // 由于 currentNote 是 AV.Object，直接 save 即可
+                        // SDK 会自动识别是 update 还是 create
+                        await currentNote.value.save();
+                        currentNote.value.hasPendingChanges = false;
+                    } catch (e) {
+                        console.error('Auto save failed', e);
+                    } finally {
+                        isSaving.value = false;
+                    }
+                }, 1500);
+            };
+
+            // 输入处理（包含高度自适应+触发保存）
+            const handleInput = () => {
+                autoResize();
+                triggerSave();
+            };
+            
+            // 样式更新也需要保存
+            const updateStyle = (key, val) => {
+                if (currentNote.value) {
+                    currentNote.value.set(key, val);
+                    // 样式更改立即保存，不用等太久，体验更好
+                    triggerSave(); 
+                }
+            };
+
+            // --- 4. 辅助逻辑 ---
+            const selectNote = (note) => {
+                currentNote.value = note;
+                viewMode.value = 'editor';
+                showStylePanel.value = false;
+                nextTick(autoResize);
+            };
+
+            const backToList = () => { 
+                viewMode.value = 'list'; 
+                // 返回列表时，如果有未保存的，尝试立即保存一下
+                if (currentNote.value && currentNote.value.hasPendingChanges) {
+                   currentNote.value.save(); 
+                }
+            };
+
+            const autoResize = () => {
+                const el = textareaRef.value;
+                if (!el) return;
+                el.style.height = 'auto';
+                el.style.height = (el.scrollHeight) + 'px';
+            };
+
+            const focusBody = (e) => {
+                if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                    if (textareaRef.value) textareaRef.value.focus();
+                }
+            };
+
+            const formatTime = (dateObj) => {
+                if (!dateObj) return '';
+                // LeanCloud 返回的是 Date 对象
+                const d = new Date(dateObj);
+                return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+            };
+            
+            const viewModeClass = computed(() => {
+                if (!isMobile) return '';
+                return viewMode.value === 'list' ? 'show-list' : 'show-editor';
+            });
+
+            // 生成图片逻辑 (使用 note.attributes)
+            const generateImage = async () => {
+                if (!currentNote.value) return;
+                isGenerating.value = true;
+                showStylePanel.value = false;
+                const staging = document.getElementById('staging-area');
+                staging.innerHTML = '';
+
+                // 注意：LeanCloud 对象取值要用 note.attributes.xxx 或 note.get('xxx')
+                // Vue 代理后可以直接用 .attributes
+                const { title, author, content, theme, font } = currentNote.value.attributes;
+                
+                const paragraphs = (content || '').split('\n');
+                const count = splitCount.value;
+                const pPerPage = Math.ceil(Math.max(paragraphs.length, 1) / count);
+
+                try {
+                    for (let i = 0; i < count; i++) {
+                        if (i > 0 && i * pPerPage >= paragraphs.length) break;
+                        statusMsg.value = `正在绘制第 ${i + 1} / ${count} 张...`;
+                        
+                        const page = document.createElement('div');
+                        page.className = `paper-sheet ${theme} ${font}`;
+                        page.style.cssText = `width: 600px; min-height: 800px; position: relative; padding-bottom: 50px; box-shadow: none; border-radius: 0; overflow: hidden;`;
+
+                        let html = '';
+                        if (i === 0) {
+                            html += `<div class="paper-header"><div class="input-title" style="border-bottom-style:solid; margin-bottom:0">${title || '无标题'}</div><div class="input-author">${author || ''}</div></div>`;
+                        } else {
+                            html += `<div style="height: 40px;"></div>`;
+                        }
+                        html += `<div class="paper-body" style="padding: 10px 40px;">`;
+                        const slice = paragraphs.slice(i * pPerPage, (i * pPerPage) + pPerPage);
+                        slice.forEach(p => {
+                            const text = p.trim() === '' ? '<br>' : p;
+                            html += `<p style="font-size: 20px; line-height: 2.0; margin-bottom: 20px; text-align: justify; white-space: pre-wrap; word-break: break-word;">${text}</p>`;
+                        });
+                        html += `</div>`;
+                        if ((i * pPerPage) + slice.length >= paragraphs.length) {
+                            html += `<div style="text-align:center; padding:30px; opacity:0.3; font-size:14px; letter-spacing:3px; font-weight:bold;">GENERATED BY SMARTISAN</div>`;
+                        }
+                        page.innerHTML = html;
+                        staging.appendChild(page);
+                        await new Promise(r => setTimeout(r, 200));
+
+                        const canvas = await html2canvas(page, { scale: 2, useCORS: true, backgroundColor: null });
+                        const link = document.createElement('a');
+                        link.download = `CloudNote_${title||'Share'}_${i+1}.png`;
+                        link.href = canvas.toDataURL("image/png");
+                        link.click();
+                    }
+                } catch (e) { alert('生成失败: ' + e.message); } 
+                finally { isGenerating.value = false; staging.innerHTML = ''; }
+            };
+
+            onMounted(() => {
+                initLeanCloud();
+                fetchNotes();
+                window.addEventListener('resize', autoResize);
+            });
+
+            return {
+                CONFIG, notes, currentNote, showStylePanel, isGenerating, isLoading, isSaving, statusMsg, splitCount, 
+                viewModeClass, textareaRef,
+                createCloudNote, selectNote, deleteCloudNote, backToList, generateImage, formatTime, 
+                handleInput, triggerSave, updateStyle, focusBody
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
