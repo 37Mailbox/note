@@ -330,27 +330,54 @@
                 }
             };
 
-            const deleteCloudNote = async () => {
-                if(!confirm('确定永久删除这条云端便签吗？')) return;
-                isLoading.value = true;
-                try {
-                    await currentNote.value.destroy();
-                    const idx = notes.value.findIndex(n => n.id === currentNote.value.id);
-                    if(idx > -1) notes.value.splice(idx, 1);
-                    
-                    if (isMobile) {
-                        backToList();
-                    } else {
-                         // 电脑端删除后尝试选中下一条，如果没有则新建
-                        if(notes.value.length > 0) selectNote(notes.value[0]);
-                        else await createCloudNote();
-                    }
-                } catch (e) {
-                    alert('删除失败: ' + e.message);
-                } finally {
-                    isLoading.value = false;
+            // --- 替换原有的 deleteCloudNote 函数 ---
+
+const deleteCloudNote = async () => {
+    if(!confirm('确定永久删除这条云端便签吗？')) return;
+    
+    isLoading.value = true;
+    statusMsg.value = '正在删除...';
+    
+    try {
+        // 1. 如果这个便签有 ID，说明在云端存在，需要请求云端删除
+        if (currentNote.value && currentNote.value.id) {
+            try {
+                await currentNote.value.destroy();
+            } catch (serverError) {
+                // 如果是 403 Forbidden，说明后台权限没开
+                if (serverError.code === 430 || serverError.code === 403) {
+                    throw new Error('云端权限不足：请在 LeanCloud 控制台开启 Note 表的 delete 权限');
                 }
-            };
+                // 如果是 404，说明云端已经没了，那就只需删本地，不报错
+                if (serverError.code !== 404) {
+                    throw serverError; 
+                }
+            }
+        }
+
+        // 2. 无论云端是否删除成功（或者本来就是本地缓存），都要从本地列表移除
+        const idx = notes.value.findIndex(n => n === currentNote.value || n.id === currentNote.value.id);
+        if(idx > -1) notes.value.splice(idx, 1);
+        
+        // 3. 删除后的页面跳转逻辑
+        if (isMobile) {
+            backToList();
+        } else {
+            // 电脑端：选中下一条，如果没有了就新建
+            if(notes.value.length > 0) {
+                selectNote(notes.value[0]);
+            } else {
+                await createCloudNote();
+            }
+        }
+
+    } catch (e) {
+        console.error(e);
+        alert('删除失败: ' + e.message);
+    } finally {
+        isLoading.value = false;
+    }
+};
 
             const triggerSave = () => {
                 if (!currentNote.value) return;
