@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Smartisan Cloud Lite</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -11,368 +11,326 @@
     <style>
         /* --- 基础样式 --- */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body, html { margin: 0; padding: 0; height: 100%; font-family: -apple-system, "PingFang SC", sans-serif; background: #3d3d3d; overflow: hidden; }
-        #app { display: flex; height: 100vh; width: 100vw; position: relative; overflow: hidden; }
+        body, html { 
+            margin: 0; padding: 0; height: 100%; width: 100%;
+            font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif; 
+            background: #2d2d2d; overflow: hidden; 
+        }
+        
+        #app { 
+            display: flex; 
+            height: 100vh; 
+            width: 100vw; 
+            position: relative; 
+            overflow: hidden; 
+            background: #2d2d2d;
+        }
         
         /* --- 侧边栏 (列表) --- */
         .sidebar { 
-            width: 300px; 
+            width: 320px; 
             background: #2d2d2d; 
-            color: #bbb; 
             display: flex; 
             flex-direction: column; 
-            border-right: 1px solid #222; 
+            border-right: 1px solid #1a1a1a; 
             z-index: 10; 
-            flex-shrink: 0; 
+            flex-shrink: 0;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .sidebar-header { padding: 15px 20px; border-bottom: 1px solid #444; background: #2d2d2d; display: flex; justify-content: space-between; align-items: center; }
-        .app-title { font-weight: 600; color: #eee; letter-spacing: 1px; }
-        .new-btn { background: #d95e48; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; }
         
-        .note-list { flex: 1; overflow-y: auto; }
-        .note-item { padding: 16px 20px; border-bottom: 1px solid #3a3a3a; cursor: pointer; transition: 0.2s; position: relative; }
-        .note-item.active { background: #404040; }
-        .note-item.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #d95e48; }
+        .sidebar-header { 
+            padding: 20px; 
+            background: #2d2d2d; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            border-bottom: 1px solid #3a3a3a;
+        }
+        .app-title { font-weight: 600; color: #eee; font-size: 18px; }
+        .new-btn { 
+            background: #d95e48; color: white; border: none; 
+            padding: 6px 16px; border-radius: 6px; 
+            cursor: pointer; font-size: 14px; font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
         
-        .note-preview-title { color: #eee; font-size: 16px; font-weight: bold; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        /* 新增：正文预览样式 */
-        .note-preview-content { font-size: 13px; color: #888; margin-bottom: 8px; line-height: 1.4; height: 36px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-overflow: ellipsis; }
-        .note-preview-date { font-size: 12px; color: #555; display: flex; justify-content: space-between;}
+        .note-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .note-item { 
+            padding: 16px 20px; border-bottom: 1px solid #333; 
+            cursor: pointer; transition: background 0.2s; position: relative; 
+        }
+        .note-item:active { background: #3a3a3a; }
+        .note-item.active { background: #3d3d3d; }
+        .note-item.active::before { 
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; 
+            width: 4px; background: #d95e48; 
+        }
         
+        .note-preview-title { color: #eee; font-size: 16px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .note-preview-content { font-size: 13px; color: #888; line-height: 1.5; height: 38px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 4px; }
+        .note-preview-date { font-size: 11px; color: #555; display: flex; justify-content: space-between; align-items: center;}
+
         /* --- 主编辑区域 --- */
-        .main-area { flex: 1; background: #e0e0e0; display: flex; flex-direction: column; position: relative; overflow: hidden; transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
-        
-        .mobile-nav { width: 100%; height: 50px; background: #f8f8f8; border-bottom: 1px solid #ddd; display: none; align-items: center; padding: 0 15px; z-index: 50; justify-content: space-between; flex-shrink: 0; }
-        .back-btn { border: none; background: transparent; color: #555; font-weight: 600; font-size: 15px; cursor: pointer; display: flex; align-items: center; }
-        .save-status { font-size: 12px; color: #999; transition: color 0.3s; }
-        .save-status.saving { color: #d95e48; }
-
-        /* 编辑器容器 */
-        .editor-wrapper { flex: 1; width: 100%; display: flex; justify-content: center; overflow-y: auto; overflow-x: hidden; padding: 30px 0 100px 0; -webkit-overflow-scrolling: touch; }
-        .paper-sheet { width: 100%; max-width: 600px; min-height: 800px; height: fit-content; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; flex-direction: column; position: relative; transition: background 0.3s; border-radius: 4px; background: white; }
-        
-        .paper-header { padding: 35px 40px 10px 40px; flex-shrink: 0; }
-        .input-title { width: 100%; border: none; background: transparent; outline: none; font-size: 24px; font-weight: bold; padding-bottom: 15px; border-bottom: 1px solid rgba(0,0,0,0.05); color: inherit; }
-        .input-author { width: 100%; border: none; background: transparent; outline: none; font-size: 14px; opacity: 0.6; margin-top: 10px; color: inherit; letter-spacing: 1px; }
-        .paper-body { flex: 1; padding: 10px 40px 50px 40px; cursor: text; display: flex; flex-direction: column; }
-        .input-content { width: 100%; border: none; background: transparent; outline: none; resize: none; font-size: 18px; line-height: 1.8; color: inherit; font-family: inherit; overflow: hidden; min-height: 400px; padding-bottom: 150px; }
-
-        /* 工具栏 */
-        .toolbar-dock { position: absolute; bottom: 30px; right: 30px; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; z-index: 100; pointer-events: none; }
-        .toolbar-dock > * { pointer-events: auto; } /* 让按钮可点击 */
-        .tool-row { display: flex; gap: 15px; }
-        .fab { width: 50px; height: 50px; border-radius: 50%; border: none; background: white; color: #555; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; }
-        .fab:hover { transform: scale(1.08); background: #fcfcfc; }
-        .fab.primary { background: #d95e48; color: white; }
-        
-        /* 样式面板 */
-        .style-panel { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); margin-bottom: 10px; width: 240px; }
-        .panel-row { margin-bottom: 12px; }
-        .panel-label { font-size: 12px; color: #888; margin-bottom: 6px; display: block; font-weight: bold; }
-        .theme-grid { display: flex; gap: 8px; }
-        .theme-opt { flex: 1; height: 36px; border-radius: 6px; border: 1px solid #eee; cursor: pointer; position: relative; }
-        .theme-opt.active { border: 2px solid #d95e48; }
-        .select-box { width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
-
-        /* 主题定义 */
-        .theme-white { background-color: #ffffff; color: #333; }
-        .theme-grid { background-color: #f7f9fc; color: #2c3e50; background-image: linear-gradient(#e6e9ef 1px, transparent 1px), linear-gradient(90deg, #e6e9ef 1px, transparent 1px); background-size: 30px 30px; background-attachment: local; }
-        .theme-retro { background-color: #fdf6e3; color: #5c4b37; background-image: radial-gradient(#d6ceaa 1px, transparent 1px); background-size: 20px 20px; background-attachment: local; }
-        .theme-dark { background-color: #222; color: #ccc; background-image: linear-gradient(#333 1px, transparent 1px); background-size: 100% 30px; background-attachment: local; }
-        .theme-dark .input-title { border-bottom-color: #444; }
-
-        .font-sans { font-family: -apple-system, "PingFang SC", sans-serif; }
-        .font-serif { font-family: "Songti SC", "Noto Serif SC", serif; letter-spacing: 0.5px; }
-        .font-kai { font-family: "Kaiti SC", "KaiTi", serif; }
-        .font-round { font-family: "YouYuan", "Varela Round", sans-serif; }
-
-        #staging-area { position: fixed; left: 200%; top: 0; width: 600px; pointer-events: none; opacity: 0; }
-        .loading-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.85); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 999; }
-        
-        /* --- 📱 重点：手机端适配 --- */
-        @media (max-width: 768px) {
-            #app {
-                width: 100vw;
-                height: 100vh;
-                position: relative;
-            }
-
-            /* 列表默认占满全屏 */
-            .sidebar { 
-                width: 100%; 
-                position: absolute; 
-                top: 0; 
-                left: 0; 
-                height: 100%; 
-                z-index: 10;
-                transform: translateX(0);
-                transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-            }
-
-            /* 编辑区默认在屏幕右侧之外 */
-            .main-area { 
-                width: 100%; 
-                position: absolute; 
-                top: 0; 
-                left: 0;
-                height: 100%; 
-                z-index: 20;
-                transform: translateX(100%);
-                box-shadow: -5px 0 20px rgba(0,0,0,0.1);
-            }
-
-            .mobile-nav { display: flex; } /* 显示手机顶部导航 */
-            .editor-wrapper { padding: 0; background: #f0f0f0; }
-            .paper-sheet { 
-                box-shadow: none; 
-                border-radius: 0; 
-                width: 100%; 
-                max-width: none; 
-                min-height: calc(100vh - 50px); 
-                padding-bottom: 80px;
-            }
-            .paper-header { padding: 25px 20px 10px 20px; }
-            .paper-body { padding: 10px 20px 80px 20px; }
-
-            /* 视图切换逻辑 */
-            /* 显示编辑器时：列表不动（或者稍微视差），编辑器滑进来 */
-            .show-editor .sidebar { transform: translateX(-20%); opacity: 0.8; }
-            .show-editor .main-area { transform: translateX(0); }
-            
-            /* 显示列表时：编辑器滑出去 */
-            .show-list .sidebar { transform: translateX(0); opacity: 1; }
-            .show-list .main-area { transform: translateX(100%); }
+        .main-area { 
+            flex: 1; 
+            background: #e5e5e5; 
+            display: flex; 
+            flex-direction: column; 
+            position: relative; 
+            z-index: 20;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        
+        /* 手机端顶部导航 */
+        .mobile-nav { 
+            height: 54px; background: #fdfdfd; 
+            border-bottom: 1px solid #d0d0d0; 
+            display: none; align-items: center; 
+            padding: 0 15px; justify-content: space-between; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .back-btn { border: none; background: transparent; color: #d95e48; font-weight: 600; font-size: 16px; padding: 10px 5px; cursor: pointer; }
+        .save-status { font-size: 12px; color: #aaa; }
+
+        /* 编辑器内部 */
+        .editor-wrapper { 
+            flex: 1; overflow-y: auto; padding: 40px 20px; 
+            display: flex; justify-content: center; 
+            background: #e5e5e5;
+        }
+        .paper-sheet { 
+            width: 100%; max-width: 700px; min-height: 100%; 
+            background: white; border-radius: 2px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column;
+        }
+        .paper-header { padding: 40px 40px 20px 40px; }
+        .input-title { width: 100%; border: none; outline: none; font-size: 26px; font-weight: bold; border-bottom: 1px solid #eee; padding-bottom: 15px; color: #222; }
+        .input-author { width: 100%; border: none; outline: none; font-size: 14px; margin-top: 15px; color: #999; }
+        .paper-body { padding: 0 40px 60px 40px; flex: 1; }
+        .input-content { 
+            width: 100%; border: none; outline: none; resize: none; 
+            font-size: 18px; line-height: 1.8; color: #333; 
+            min-height: 400px; font-family: inherit;
+        }
+
+        /* 浮动工具栏 */
+        .toolbar-dock { position: absolute; bottom: 30px; right: 30px; display: flex; flex-direction: column; gap: 15px; align-items: flex-end; z-index: 100; }
+        .fab { width: 56px; height: 56px; border-radius: 28px; border: none; background: white; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; font-size: 22px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .fab.primary { background: #d95e48; color: white; }
+        .fab:active { transform: scale(0.9); }
+
+        .style-panel { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); margin-bottom: 15px; width: 250px; }
+        .panel-row { margin-bottom: 15px; }
+        .panel-label { display: block; font-size: 12px; color: #999; margin-bottom: 8px; font-weight: bold; }
+        .theme-grid { display: flex; gap: 10px; }
+        .theme-opt { flex: 1; height: 35px; border-radius: 4px; border: 2px solid #eee; cursor: pointer; }
+        .theme-opt.active { border-color: #d95e48; }
+
+        /* 主题样式 */
+        .theme-white { background: #fff !important; color: #333; }
+        .theme-grid { background: #f7f9fc !important; background-image: linear-gradient(#e6e9ef 1px, transparent 1px), linear-gradient(90deg, #e6e9ef 1px, transparent 1px) !important; background-size: 30px 30px !important; }
+        .theme-retro { background: #fdf6e3 !important; background-image: radial-gradient(#d6ceaa 1px, transparent 1px) !important; background-size: 20px 20px !important; color: #5c4b37; }
+        .theme-dark { background: #222 !important; color: #ccc; }
+        .theme-dark .input-title { border-bottom-color: #444; color: #eee; }
+        .theme-dark .input-content { color: #ccc; }
+
+        .font-sans { font-family: sans-serif; }
+        .font-serif { font-family: "Noto Serif SC", serif; }
+        .font-kai { font-family: "Kaiti SC", serif; }
+
+        /* --- 📱 重点：移动端适配逻辑 --- */
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; position: absolute; left: 0; top: 0; bottom: 0; }
+            .main-area { 
+                position: fixed; left: 0; top: 0; width: 100%; height: 100%; 
+                transform: translateX(100%); /* 默认藏在右侧 */
+            }
+            
+            /* 状态切换 */
+            #app.show-editor .main-area { transform: translateX(0); }
+            #app.show-editor .sidebar { transform: translateX(-20%); }
+
+            .mobile-nav { display: flex; }
+            .editor-wrapper { padding: 0; background: #fff; }
+            .paper-sheet { max-width: none; box-shadow: none; border-radius: 0; }
+            .paper-header { padding: 30px 20px 10px 20px; }
+            .paper-body { padding: 0 20px 100px 20px; }
+            .toolbar-dock { bottom: 20px; right: 20px; }
+        }
+
+        /* 遮罩层 */
+        .loading-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.7); color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
     </style>
 </head>
 <body>
 
-<div id="app" :class="viewModeClass">
+<div id="app" :class="{ 'show-editor': viewMode === 'editor' }">
+    <!-- 全局加载提示 -->
     <div class="loading-mask" v-if="isLoading || isGenerating">
-        <div style="font-size: 30px; margin-bottom: 20px;">
-            {{ isGenerating ? '✨' : '☁️' }}
-        </div>
-        <h3>{{ isGenerating ? '正在生成长图...' : '正在同步云端...' }}</h3>
-        <p style="margin-top: 10px; opacity: 0.7; font-size: 14px;">{{ statusMsg }}</p>
+        <div style="font-size: 30px; margin-bottom: 10px;">{{ isGenerating ? '✨' : '☁️' }}</div>
+        <div>{{ isGenerating ? '正在生成美图...' : '同步中...' }}</div>
     </div>
 
-    <!-- 侧边栏 (列表) -->
+    <!-- 列表页 -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <span class="app-title">📝 云端便签</span>
-            <button class="new-btn" @click="createCloudNote">新建</button>
+            <span class="app-title">云端便签</span>
+            <button class="new-btn" @click="createCloudNote">+ 新建</button>
         </div>
         <div class="note-list">
             <div class="note-item" v-for="note in notes" :key="note.id" 
                  :class="{ active: currentNote && currentNote.id === note.id }"
                  @click="selectNote(note)">
                 <div class="note-preview-title">{{ note.attributes.title || '无标题' }}</div>
-                <!-- ✨ 新增：文章内容预览 ✨ -->
-                <div class="note-preview-content">{{ getSummary(note) }}</div>
-                
+                <div class="note-preview-content">{{ note.attributes.content || '暂无内容...' }}</div>
                 <div class="note-preview-date">
                     <span>{{ formatTime(note.updatedAt) }}</span>
-                    <span v-if="!note.hasPendingChanges">☁️</span>
-                    <span v-else>🕒</span>
+                    <span>{{ note.hasPendingChanges ? '🕒' : '☁️' }}</span>
                 </div>
             </div>
-            <!-- 空状态提示 -->
-            <div v-if="notes.length === 0 && !isLoading" style="padding: 40px 20px; text-align: center; color: #666; font-size: 14px;">
-                还没有便签，点击右上角“新建”
+            <div v-if="notes.length === 0" style="color:#666; text-align:center; margin-top:50px; font-size:14px;">
+                点击“新建”开启第一条便签
             </div>
         </div>
     </div>
 
-    <!-- 主编辑区 -->
-    <div class="main-area">
+    <!-- 编辑页 -->
+    <div class="main-area" v-if="currentNote">
         <div class="mobile-nav">
-            <button class="back-btn" @click="backToList">
-                <span style="font-size: 18px; margin-right: 4px;">‹</span> 返回
-            </button>
-            <span class="save-status" :class="{ saving: isSaving }">
-                {{ isSaving ? '同步中...' : '已同步' }}
-            </span>
+            <button class="back-btn" @click="viewMode = 'list'">‹ 列表</button>
+            <span class="save-status">{{ isSaving ? '保存中...' : '云端已同步' }}</span>
+            <div style="width: 40px"></div> <!-- 占位保持平衡 -->
         </div>
 
-        <div class="editor-wrapper" v-if="currentNote">
-            <!-- 修复了主题默认值问题，添加了 theme-white -->
-            <div class="paper-sheet" 
-                 :class="[currentNote.attributes.theme || 'theme-white', currentNote.attributes.font || 'font-sans']"
-                 @click="focusBody">
+        <div class="editor-wrapper">
+            <div class="paper-sheet" :class="[currentNote.attributes.theme || 'theme-white', currentNote.attributes.font || 'font-sans']">
                 <div class="paper-header">
-                    <input class="input-title" v-model="currentNote.attributes.title" @input="triggerSave" placeholder="输入标题" maxlength="50">
-                    <input class="input-author" v-model="currentNote.attributes.author" @input="triggerSave" placeholder="作者署名 (可选)">
+                    <input class="input-title" v-model="currentNote.attributes.title" @input="triggerSave" placeholder="标题">
+                    <input class="input-author" v-model="currentNote.attributes.author" @input="triggerSave" placeholder="署名 (可选)">
                 </div>
                 <div class="paper-body">
-                    <textarea ref="textareaRef" class="input-content" 
-                        v-model="currentNote.attributes.content" @input="handleInput"
-                        placeholder="点击此处输入正文..."></textarea>
+                    <textarea ref="editorRef" class="input-content" 
+                        v-model="currentNote.attributes.content" 
+                        @input="onInput"
+                        placeholder="在此输入内容..."></textarea>
                 </div>
-                <div style="text-align:center; padding: 20px; opacity:0.1; font-size:12px; letter-spacing:2px; font-weight:bold; pointer-events:none;">SMARTISAN NOTES</div>
             </div>
         </div>
 
-        <div class="toolbar-dock" v-if="currentNote">
-            <div class="style-panel" v-if="showStylePanel">
+        <!-- 工具栏 -->
+        <div class="toolbar-dock">
+            <div class="style-panel" v-if="showStyle">
                 <div class="panel-row">
-                    <span class="panel-label">信纸主题</span>
+                    <span class="panel-label">背景主题</span>
                     <div class="theme-grid">
-                        <div class="theme-opt" style="background:#fff" @click="updateStyle('theme', 'theme-white')" :class="{active: (currentNote.attributes.theme || 'theme-white')=='theme-white'}"></div>
-                        <div class="theme-opt" style="background:#f7f9fc" @click="updateStyle('theme', 'theme-grid')" :class="{active: currentNote.attributes.theme=='theme-grid'}"></div>
-                        <div class="theme-opt" style="background:#fdf6e3" @click="updateStyle('theme', 'theme-retro')" :class="{active: currentNote.attributes.theme=='theme-retro'}"></div>
-                        <div class="theme-opt" style="background:#333" @click="updateStyle('theme', 'theme-dark')" :class="{active: currentNote.attributes.theme=='theme-dark'}"></div>
+                        <div class="theme-opt theme-white" @click="updateStyle('theme', 'theme-white')" :class="{active: currentNote.attributes.theme === 'theme-white'}"></div>
+                        <div class="theme-opt theme-grid" @click="updateStyle('theme', 'theme-grid')" :class="{active: currentNote.attributes.theme === 'theme-grid'}"></div>
+                        <div class="theme-opt theme-retro" @click="updateStyle('theme', 'theme-retro')" :class="{active: currentNote.attributes.theme === 'theme-retro'}"></div>
                     </div>
                 </div>
                 <div class="panel-row">
-                    <span class="panel-label">字体风格</span>
-                    <select class="select-box" :value="currentNote.attributes.font || 'font-sans'" @change="e => updateStyle('font', e.target.value)">
-                        <option value="font-sans">黑体 (现代)</option>
-                        <option value="font-serif">宋体 (人文)</option>
-                        <option value="font-kai">楷体 (手写)</option>
-                        <option value="font-round">圆体 (可爱)</option>
-                    </select>
-                </div>
-                <div class="panel-row">
-                    <span class="panel-label">生成切分</span>
-                    <select class="select-box" v-model="splitCount">
-                        <option :value="1">生成 1 张长图</option>
-                        <option :value="2">自动切分 2 张</option>
-                        <option :value="3">自动切分 3 张</option>
+                    <span class="panel-label">字体</span>
+                    <select v-model="currentNote.attributes.font" @change="triggerSave" style="width:100%; padding:5px;">
+                        <option value="font-sans">标准黑体</option>
+                        <option value="font-serif">人文宋体</option>
+                        <option value="font-kai">经典楷体</option>
                     </select>
                 </div>
             </div>
-            <div class="tool-row">
-                <button class="fab danger" @click="deleteCloudNote">🗑️</button>
-                <button class="fab" @click="showStylePanel = !showStylePanel">🎨</button>
-                <button class="fab primary" @click="generateImage">✨</button>
-            </div>
+            <button class="fab" @click="showStyle = !showStyle">🎨</button>
+            <button class="fab" @click="deleteNote" style="color: #d95e48;">🗑️</button>
+            <button class="fab primary" @click="generateImage">✨</button>
         </div>
     </div>
-    <div id="staging-area"></div>
 </div>
 
 <script>
-    const { createApp, ref, computed, nextTick, onMounted } = Vue;
+    const { createApp, ref, onMounted, nextTick } = Vue;
 
-    // --- ⭐ 配置区域：请替换为你自己的 LeanCloud 密钥 ⭐ ---
+    // --- 配置 ---
     const CONFIG = {
-        appId: 'E1rPatvQJfGDx7FnsXpGTHN1-gzGzoHsz',       
-        appKey: 'eqfKH55tCL5dh3oWqF0KkomM',     
-        serverURL: 'https://e1rpatvq.lc-cn-n1-shared.com' 
+        appId: 'E1rPatvQJfGDx7FnsXpGTHN1-gzGzoHsz',
+        appKey: 'eqfKH55tCL5dh3oWqF0KkomM',
+        serverURL: 'https://e1rpatvq.lc-cn-n1-shared.com'
     };
 
     createApp({
         setup() {
-            // State
             const notes = ref([]);
             const currentNote = ref(null);
-            const showStylePanel = ref(false);
-            const isGenerating = ref(false);
+            const viewMode = ref('list'); // 'list' or 'editor'
             const isLoading = ref(false);
-            const isSaving = ref(false); 
-            const statusMsg = ref('');
-            const splitCount = ref(1);
-            const textareaRef = ref(null);
-            
-            const isMobile = window.innerWidth <= 768;
-            // 手机上默认只显示列表(list)，电脑上显示编辑器(editor)
-            const viewMode = ref(isMobile ? 'list' : 'editor');
-
-            // Timer for Debounce
+            const isSaving = ref(false);
+            const isGenerating = ref(false);
+            const showStyle = ref(false);
+            const editorRef = ref(null);
             let saveTimer = null;
 
-            const initLeanCloud = () => {
-                if (!AV.applicationId) {
-                    AV.init({ appId: CONFIG.appId, appKey: CONFIG.appKey, serverURL: CONFIG.serverURL });
-                }
+            const init = () => {
+                AV.init(CONFIG);
+                loadNotes();
             };
 
-            const fetchNotes = async () => {
+            const loadNotes = async () => {
                 isLoading.value = true;
-                statusMsg.value = '正在拉取...';
                 try {
                     const query = new AV.Query('Note');
                     query.descending('updatedAt');
                     notes.value = await query.find();
-                    
-                    // 电脑端默认选中第一条，手机端停留在列表
-                    if (notes.value.length > 0 && !isMobile) {
+                    // PC端默认选第一个
+                    if (window.innerWidth > 768 && notes.value.length > 0) {
                         selectNote(notes.value[0]);
                     }
-                } catch (error) {
-                    console.error(error);
                 } finally {
                     isLoading.value = false;
                 }
             };
 
-            // --- 新建笔记（修改版：增加 ACL 设置）---
+            const selectNote = (note) => {
+                currentNote.value = note;
+                viewMode.value = 'editor';
+                showStyle.value = false;
+                nextTick(autoResize);
+            };
+
             const createCloudNote = async () => {
                 isLoading.value = true;
-                statusMsg.value = '正在创建...';
                 try {
                     const Note = AV.Object.extend('Note');
                     const note = new Note();
                     note.set('title', '');
                     note.set('content', '');
-                    note.set('author', '');
                     note.set('theme', 'theme-white');
-                    note.set('font', 'font-sans');
                     
-                    // 🔥 关键修改：设置 ACL 为所有人可读、可写 🔥
-                    // 这样即使你是匿名用户，也能删除自己刚才建的，或者以后建的
                     const acl = new AV.ACL();
                     acl.setPublicReadAccess(true);
                     acl.setPublicWriteAccess(true);
                     note.setACL(acl);
-                    
-                    const savedNote = await note.save();
-                    notes.value.unshift(savedNote); 
-                    
-                    // 新建后直接进入编辑
-                    selectNote(savedNote);
-                } catch (e) {
-                    alert('创建失败: ' + e.message);
+
+                    const saved = await note.save();
+                    notes.value.unshift(saved);
+                    selectNote(saved);
                 } finally {
                     isLoading.value = false;
                 }
             };
 
-
-            // --- 替换原有的 deleteCloudNote 函数 ---
-
-// --- 删除笔记（修改版：暴力删除）---
-            const deleteCloudNote = async () => {
-                if(!confirm('确定永久删除这条云端便签吗？')) return;
+            const deleteNote = async () => {
+                if (!confirm('确定删除此便签吗？')) return;
+                const idToDelete = currentNote.value.id;
                 isLoading.value = true;
-                statusMsg.value = '正在处理...'; // 改文案，因为可能只是本地删除
-                
                 try {
-                    // 1. 尝试从云端删除
-                    if (currentNote.value && currentNote.value.id) {
-                        try {
-                            await currentNote.value.destroy();
-                        } catch (serverError) {
-                            console.warn("云端删除失败，转为强制本地删除:", serverError);
-                            // 如果是权限错误(403)或者找不到对象(404)，我们可以忽略，直接删本地
-                            // 这样用户体验最好，不会卡死
-                        }
-                    }
-
-                    // 2. 无论云端是否成功，都从本地列表移除
-                    const idx = notes.value.findIndex(n => n.id === currentNote.value.id);
-                    if(idx > -1) notes.value.splice(idx, 1);
-                    
-                    // 3. 处理后续跳转
-                    if (isMobile) {
-                        backToList();
-                    } else {
-                        if(notes.value.length > 0) selectNote(notes.value[0]);
-                        else await createCloudNote();
-                    }
+                    // 云端删除
+                    await currentNote.value.destroy();
+                    // 本地清理
+                    notes.value = notes.value.filter(n => n.id !== idToDelete);
+                    viewMode.value = 'list';
+                    currentNote.value = null;
                 } catch (e) {
-                    // 只有极其严重的错误（比如代码崩了）才弹窗，网络/权限错误上面已经吞掉了
-                    alert('本地处理出错: ' + e.message);
+                    // 即使云端失败（比如已被删），本地也移除
+                    notes.value = notes.value.filter(n => n.id !== idToDelete);
+                    viewMode.value = 'list';
                 } finally {
                     isLoading.value = false;
                 }
@@ -381,150 +339,65 @@
             const triggerSave = () => {
                 if (!currentNote.value) return;
                 currentNote.value.hasPendingChanges = true;
-                isSaving.value = true;
                 if (saveTimer) clearTimeout(saveTimer);
                 saveTimer = setTimeout(async () => {
+                    isSaving.value = true;
                     try {
                         await currentNote.value.save();
                         currentNote.value.hasPendingChanges = false;
-                    } catch (e) { console.error(e); } 
-                    finally { isSaving.value = false; }
-                }, 1500);
+                    } finally {
+                        isSaving.value = false;
+                    }
+                }, 1000);
             };
 
-            const handleInput = () => {
+            const onInput = () => {
                 autoResize();
                 triggerSave();
             };
-            
-            const updateStyle = (key, val) => {
-                if (currentNote.value) {
-                    currentNote.value.set(key, val);
-                    triggerSave(); 
-                }
-            };
-
-            const selectNote = (note) => {
-                currentNote.value = note;
-                viewMode.value = 'editor'; // 切换到编辑视图
-                showStylePanel.value = false;
-                nextTick(autoResize);
-            };
-
-            const backToList = () => { 
-                // 返回列表时如果正在输入，尝试立即保存
-                if (currentNote.value && currentNote.value.hasPendingChanges) {
-                   currentNote.value.save(); 
-                }
-                viewMode.value = 'list'; 
-                // 收起键盘
-                if (document.activeElement) document.activeElement.blur();
-            };
 
             const autoResize = () => {
-                const el = textareaRef.value;
-                if (!el) return;
-                el.style.height = 'auto';
-                el.style.height = (el.scrollHeight) + 'px';
-            };
-
-            const focusBody = (e) => {
-                if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
-                    if (textareaRef.value) textareaRef.value.focus();
+                const el = editorRef.value;
+                if (el) {
+                    el.style.height = 'auto';
+                    el.style.height = el.scrollHeight + 'px';
                 }
             };
 
-            const formatTime = (dateObj) => {
-                if (!dateObj) return '';
-                const d = new Date(dateObj);
-                const now = new Date();
-                // 如果是今天的消息，只显示时间
-                if (d.toDateString() === now.toDateString()) {
-                    return `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
-                }
-                return `${d.getMonth()+1}/${d.getDate()}`;
+            const updateStyle = (key, val) => {
+                currentNote.value.set(key, val);
+                triggerSave();
             };
 
-            // 获取预览文字
-            const getSummary = (note) => {
-                const c = note.attributes.content;
-                if (!c) return '无正文内容';
-                // 替换掉换行符，让预览更紧凑
-                return c.replace(/\n/g, ' ').substring(0, 60);
+            const formatTime = (date) => {
+                if (!date) return '';
+                const d = new Date(date);
+                return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
             };
-            
-            const viewModeClass = computed(() => {
-                if (!isMobile) return '';
-                // 确保 Vue 能根据 viewMode 切换 class
-                return viewMode.value === 'list' ? 'show-list' : 'show-editor';
-            });
 
             const generateImage = async () => {
-                if (!currentNote.value) return;
                 isGenerating.value = true;
-                showStylePanel.value = false;
-                const staging = document.getElementById('staging-area');
-                staging.innerHTML = '';
-
-                // 使用保底值 theme-white
-                const { title, author, content } = currentNote.value.attributes;
-                const theme = currentNote.value.attributes.theme || 'theme-white';
-                const font = currentNote.value.attributes.font || 'font-sans';
-                
-                const paragraphs = (content || '').split('\n');
-                const count = splitCount.value;
-                const pPerPage = Math.ceil(Math.max(paragraphs.length, 1) / count);
-
+                showStyle.value = false;
                 try {
-                    for (let i = 0; i < count; i++) {
-                        if (i > 0 && i * pPerPage >= paragraphs.length) break;
-                        statusMsg.value = `正在绘制第 ${i + 1} / ${count} 张...`;
-                        
-                        const page = document.createElement('div');
-                        page.className = `paper-sheet ${theme} ${font}`;
-                        page.style.cssText = `width: 600px; min-height: 800px; position: relative; padding-bottom: 50px; box-shadow: none; border-radius: 0; overflow: hidden;`;
-
-                        let html = '';
-                        if (i === 0) {
-                            html += `<div class="paper-header"><div class="input-title" style="border-bottom-style:solid; margin-bottom:0">${title || '无标题'}</div><div class="input-author">${author || ''}</div></div>`;
-                        } else {
-                            html += `<div style="height: 40px;"></div>`;
-                        }
-                        html += `<div class="paper-body" style="padding: 10px 40px;">`;
-                        const slice = paragraphs.slice(i * pPerPage, (i * pPerPage) + pPerPage);
-                        slice.forEach(p => {
-                            const text = p.trim() === '' ? '<br>' : p;
-                            html += `<p style="font-size: 20px; line-height: 2.0; margin-bottom: 20px; text-align: justify; white-space: pre-wrap; word-break: break-word;">${text}</p>`;
-                        });
-                        html += `</div>`;
-                        if ((i * pPerPage) + slice.length >= paragraphs.length) {
-                            html += `<div style="text-align:center; padding:30px; opacity:0.3; font-size:14px; letter-spacing:3px; font-weight:bold;">GENERATED BY SMARTISAN</div>`;
-                        }
-                        page.innerHTML = html;
-                        staging.appendChild(page);
-                        await new Promise(r => setTimeout(r, 200));
-
-                        const canvas = await html2canvas(page, { scale: 2, useCORS: true, backgroundColor: null });
-                        const link = document.createElement('a');
-                        link.download = `CloudNote_${title||'Share'}_${i+1}.png`;
-                        link.href = canvas.toDataURL("image/png");
-                        link.click();
-                    }
-                } catch (e) { alert('生成失败: ' + e.message); } 
-                finally { isGenerating.value = false; staging.innerHTML = ''; }
+                    // 简单实现：将当前paper-sheet截屏
+                    const sheet = document.querySelector('.paper-sheet');
+                    const canvas = await html2canvas(sheet, { scale: 2, useCORS: true });
+                    const link = document.createElement('a');
+                    link.download = `Note_${Date.now()}.png`;
+                    link.href = canvas.toDataURL();
+                    link.click();
+                } catch (e) {
+                    alert('生成失败');
+                } finally {
+                    isGenerating.value = false;
+                }
             };
 
-            onMounted(() => {
-                initLeanCloud();
-                fetchNotes();
-                window.addEventListener('resize', autoResize);
-            });
+            onMounted(init);
 
             return {
-                CONFIG, notes, currentNote, showStylePanel, isGenerating, isLoading, isSaving, statusMsg, splitCount, 
-                viewModeClass, textareaRef,
-                createCloudNote, selectNote, deleteCloudNote, backToList, generateImage, formatTime, 
-                handleInput, triggerSave, updateStyle, focusBody, getSummary
+                notes, currentNote, viewMode, isLoading, isSaving, isGenerating, showStyle, editorRef,
+                selectNote, createCloudNote, deleteNote, onInput, triggerSave, updateStyle, formatTime, generateImage
             };
         }
     }).mount('#app');
