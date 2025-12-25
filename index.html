@@ -3,172 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Smartisan Cloud - 个人版</title>
+    <title>Smartisan Notes Pro</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://unpkg.com/leancloud-storage@4.15.0/dist/av-min.js"></script>
     
     <style>
-        /* --- 基础样式 (保留原有的锤子风格) --- */
+        /* --- 核心精致样式 --- */
+        :root { --primary-red: #d95e48; --bg-dark: #3d3d3d; --sidebar-bg: #2d2d2d; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body, html { margin: 0; padding: 0; height: 100%; background: #3d3d3d; font-family: "PingFang SC", sans-serif; overflow: hidden; }
+        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg-dark); font-family: "PingFang SC", "Hiragino Sans GB", sans-serif; overflow: hidden; }
+        
         #app { display: flex; height: 100vh; width: 100vw; position: relative; }
 
-        /* --- 登录注册界面 --- */
-        .auth-overlay {
-            position: fixed; inset: 0; background: #3d3d3d; z-index: 2000;
-            display: flex; align-items: center; justify-content: center; padding: 20px;
-        }
-        .auth-card {
-            background: #f8f8f8; width: 100%; max-width: 360px; border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5); overflow: hidden;
-        }
-        .auth-header { background: #d95e48; padding: 30px; text-align: center; color: white; }
-        .auth-body { padding: 30px; }
-        .auth-input {
-            width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd;
-            border-radius: 6px; outline: none; font-size: 16px;
-        }
-        .auth-btn {
-            width: 100%; padding: 12px; background: #d95e48; color: white;
-            border: none; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer;
-        }
-        .auth-switch { text-align: center; margin-top: 15px; font-size: 14px; color: #666; cursor: pointer; }
+        /* --- 登录层 --- */
+        .auth-mask { position: fixed; inset: 0; background: var(--bg-dark); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .auth-card { background: #f2f2f2; width: 100%; max-width: 340px; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); overflow: hidden; }
+        .auth-header { background: var(--primary-red); padding: 25px; text-align: center; color: white; }
+        .auth-body { padding: 25px; }
+        .auth-input { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 4px; outline: none; font-size: 16px; }
+        .auth-btn { width: 100%; padding: 12px; background: var(--primary-red); color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
 
-        /* --- 侧边栏及用户栏 --- */
-        .sidebar { width: 300px; background: #2d2d2d; display: flex; flex-direction: column; z-index: 10; flex-shrink: 0; }
-        .user-bar { padding: 10px 20px; background: #252525; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1a1a1a; }
-        .user-info { color: #888; font-size: 12px; }
-        .logout-btn { color: #d95e48; font-size: 12px; cursor: pointer; background: transparent; border: none; }
-        
-        .sidebar-header { padding: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .app-title { color: #eee; font-weight: 600; }
-        .new-btn { background: #d95e48; color: white; border: none; padding: 6px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        /* --- 侧边栏 --- */
+        .sidebar { width: 320px; background: var(--sidebar-bg); display: flex; flex-direction: column; z-index: 10; border-right: 1px solid #1a1a1a; transition: transform 0.3s; }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid #3a3a3a; display: flex; justify-content: space-between; align-items: center; }
+        .sidebar-header h2 { color: #eee; font-size: 16px; margin: 0; }
+        .user-tag { font-size: 11px; color: #666; padding: 2px 8px; background: #222; border-radius: 10px; margin-top: 5px; display: inline-block; }
 
         .note-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .note-item { padding: 16px 20px; border-bottom: 1px solid #333; cursor: pointer; transition: 0.2s; position: relative; }
-        .note-item.active { background: #404040; }
-        .note-item.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #d95e48; }
-        .note-preview-title { color: #eee; font-size: 15px; font-weight: bold; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .note-preview-content { color: #888; font-size: 12px; height: 34px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .note-item { padding: 18px 20px; border-bottom: 1px solid #333; cursor: pointer; position: relative; }
+        .note-item.active { background: #3d3d3d; }
+        .note-item.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--primary-red); }
+        .note-item .title { color: #eee; font-size: 15px; font-weight: bold; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .note-item .summary { color: #888; font-size: 12px; height: 34px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
         /* --- 编辑区 --- */
-        .main-area { flex: 1; background: #e0e0e0; display: flex; flex-direction: column; position: relative; overflow: hidden; z-index: 20; }
-        .mobile-nav { display: none; height: 50px; background: #f8f8f8; border-bottom: 1px solid #ccc; align-items: center; padding: 0 15px; justify-content: space-between; flex-shrink: 0; }
-        .back-btn { border: none; background: transparent; color: #d95e48; font-size: 16px; font-weight: bold; }
+        .main-area { flex: 1; background: #e0e0e0; position: relative; display: flex; flex-direction: column; z-index: 20; }
+        .mobile-nav { display: none; height: 50px; background: #f9f9f9; border-bottom: 1px solid #bbb; align-items: center; padding: 0 15px; justify-content: space-between; }
+        .back-btn { color: var(--primary-red); font-weight: bold; border: none; background: none; font-size: 16px; }
 
-        .editor-wrapper { flex: 1; overflow-y: auto; padding: 30px 15px; display: flex; justify-content: center; }
-        .paper-sheet { width: 100%; max-width: 640px; min-height: 800px; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border-radius: 2px; position: relative; }
-        .paper-header { padding: 40px 40px 10px 40px; }
-        .input-title { width: 100%; border: none; outline: none; background: transparent; font-size: 24px; font-weight: bold; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 10px; }
-        .paper-body { padding: 10px 40px 60px 40px; }
-        .input-content { width: 100%; border: none; outline: none; font-size: 18px; line-height: 1.8; resize: none; overflow: hidden; min-height: 500px; }
+        .editor-container { flex: 1; overflow-y: auto; padding: 40px 20px; display: flex; justify-content: center; }
+        
+        /* --- 纸张样式还原 --- */
+        .paper { width: 100%; max-width: 640px; min-height: 800px; height: fit-content; background: #fff; box-shadow: 0 10px 40px rgba(0,0,0,0.15); border-radius: 2px; position: relative; }
+        .paper-header { padding: 45px 45px 10px 45px; }
+        .input-title { width: 100%; border: none; outline: none; background: transparent; font-size: 26px; font-weight: bold; color: inherit; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 10px; }
+        .paper-body { padding: 10px 45px 80px 45px; }
+        .input-content { width: 100%; border: none; outline: none; background: transparent; font-size: 18px; line-height: 1.8; color: inherit; resize: none; min-height: 600px; font-family: inherit; }
 
-        /* 主题 */
-        .theme-white { background: #fff; color: #333; }
-        .theme-grid { background-color: #f7f9fc; background-image: linear-gradient(#e6e9ef 1px, transparent 1px), linear-gradient(90deg, #e6e9ef 1px, transparent 1px); background-size: 30px 30px; }
-        .theme-retro { background-color: #fdf6e3; background-image: radial-gradient(#d6ceaa 1px, transparent 1px); background-size: 20px 20px; color: #5c4b37; }
+        /* 信纸主题 */
+        .theme-white { background-color: #ffffff !important; color: #333; }
+        .theme-grid { background-color: #f7f9fc !important; background-image: linear-gradient(#e6e9ef 1px, transparent 1px), linear-gradient(90deg, #e6e9ef 1px, transparent 1px) !important; background-size: 30px 30px !important; }
+        .theme-retro { background-color: #fdf6e3 !important; background-image: radial-gradient(#d6ceaa 1px, transparent 1px) !important; background-size: 20px 20px !important; color: #5c4b37; }
+        .theme-dark { background-color: #2b2b2b !important; color: #bbb !important; }
+        .theme-dark .input-title { border-bottom-color: #444; }
 
-        /* 工具栏 */
-        .toolbar-dock { position: absolute; bottom: 30px; right: 30px; display: flex; flex-direction: column; gap: 12px; align-items: flex-end; z-index: 100; }
-        .fab { width: 50px; height: 50px; border-radius: 50%; background: #fff; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; }
-        .fab.primary { background: #d95e48; color: #fff; }
+        .font-sans { font-family: sans-serif; }
+        .font-serif { font-family: "Songti SC", "Noto Serif SC", serif; }
 
-        /* 手机端适配 */
+        /* --- 工具栏 --- */
+        .toolbar { position: absolute; bottom: 30px; right: 30px; display: flex; flex-direction: column; gap: 12px; align-items: flex-end; z-index: 100; }
+        .fab { width: 52px; height: 52px; border-radius: 26px; background: #fff; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; }
+        .fab.primary { background: var(--primary-red); color: #fff; }
+
+        .style-card { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); width: 220px; margin-bottom: 10px; }
+        .style-label { font-size: 11px; color: #999; margin-bottom: 8px; display: block; }
+        .theme-row { display: flex; gap: 8px; margin-bottom: 12px; }
+        .theme-dot { flex: 1; height: 30px; border-radius: 4px; border: 2px solid #eee; cursor: pointer; }
+        .theme-dot.active { border-color: var(--primary-red); }
+
+        /* --- 手机适配 (重写) --- */
         @media (max-width: 768px) {
-            .sidebar { width: 100%; position: absolute; left: 0; top: 0; transition: 0.3s; }
-            .main-area { width: 100%; position: absolute; left: 0; top: 0; height: 100%; transform: translateX(100%); transition: 0.3s; }
-            #app.show-editor .sidebar { transform: translateX(-20%); opacity: 0.5; }
-            #app.show-editor .main-area { transform: translateX(0); }
+            .sidebar { width: 100%; position: fixed; inset: 0; }
+            .main-area { position: fixed; inset: 0; transform: translateX(100%); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+            #app.mobile-edit .main-area { transform: translateX(0); }
             .mobile-nav { display: flex; }
-            .editor-wrapper { padding: 0; background: #fff; }
-            .paper-sheet { max-width: none; box-shadow: none; border-radius: 0; }
+            .editor-container { padding: 0; background: #fff; }
+            .paper { max-width: none; box-shadow: none; border-radius: 0; min-height: 100%; }
+            .paper-header { padding: 30px 20px 10px 20px; }
+            .paper-body { padding: 10px 20px 100px 20px; }
+            .toolbar { bottom: 20px; right: 20px; }
         }
 
-        .loading-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
-        #staging { position: absolute; top: -9999px; width: 640px; }
+        .mask { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
+        #render-box { position: absolute; left: -9999px; width: 640px; }
     </style>
 </head>
 <body>
 
-<div id="app" :class="{'show-editor': isEditingMobile}">
-    
-    <!-- 1. 登录/注册界面 -->
-    <div class="auth-overlay" v-if="!currentUser">
+<div id="app" :class="{'mobile-edit': isMobileShow}">
+    <!-- 登录模块 -->
+    <div class="auth-mask" v-if="!user">
         <div class="auth-card">
-            <div class="auth-header">
-                <h2>云端便签</h2>
-                <p>{{ authMode === 'login' ? '请登录以访问个人便签' : '注册新账号' }}</p>
-            </div>
+            <div class="auth-header"><h3>云端便签 Personal</h3></div>
             <div class="auth-body">
-                <input class="auth-input" v-model="authForm.username" placeholder="用户名">
-                <input class="auth-input" type="password" v-model="authForm.password" placeholder="密码">
-                <button class="auth-btn" @click="handleAuth" :disabled="isLoading">
-                    {{ isLoading ? '处理中...' : (authMode === 'login' ? '立即登录' : '确认注册') }}
-                </button>
-                <div class="auth-switch" @click="authMode = (authMode === 'login' ? 'register' : 'login')">
-                    {{ authMode === 'login' ? '没有账号？点击注册' : '已有账号？点击登录' }}
-                </div>
+                <input class="auth-input" v-model="auth.u" placeholder="用户名">
+                <input class="auth-input" type="password" v-model="auth.p" placeholder="密码">
+                <button class="auth-btn" @click="handleAuth">{{ isReg ? '注册' : '登录' }}</button>
+                <p style="text-align:center; font-size:13px; color:#666; margin-top:15px; cursor:pointer;" @click="isReg = !isReg">
+                    {{ isReg ? '已有账号？去登录' : '没有账号？去注册' }}
+                </p>
             </div>
         </div>
     </div>
 
-    <!-- 2. 全局加载遮罩 -->
-    <div class="loading-mask" v-if="isLoading || isGenerating">
-        <div>{{ isGenerating ? '✨ 正在生成长图...' : '☁️ 正在同步...' }}</div>
+    <!-- 加载遮罩 -->
+    <div class="mask" v-if="loading || generating">
+        <div style="font-size:30px; margin-bottom:10px">{{ generating ? '✨' : '☁️' }}</div>
+        <div>{{ generating ? '正在生成无损长图...' : '同步云端...' }}</div>
     </div>
 
-    <!-- 3. 主界面 (仅在登录后显示) -->
-    <template v-if="currentUser">
-        <!-- 列表 -->
-        <div class="sidebar">
-            <div class="user-bar">
-                <span class="user-info">👤 {{ currentUser.getUsername() }}</span>
-                <button class="logout-btn" @click="logout">退出</button>
+    <!-- 列表侧边栏 -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div>
+                <h2>我的便签</h2>
+                <span class="user-tag" v-if="user">{{ user.getUsername() }}</span>
             </div>
-            <div class="sidebar-header">
-                <span class="app-title">我的便签</span>
-                <button class="new-btn" @click="createNote">新建</button>
+            <button class="new-btn" @click="createNote" style="background:var(--primary-red); color:white; border:none; padding:6px 15px; border-radius:4px; font-weight:bold; cursor:pointer;">新建</button>
+        </div>
+        <div class="note-list">
+            <div class="note-item" v-for="n in notes" :key="n.id" :class="{active: currentNote && currentNote.id === n.id}" @click="openNote(n)">
+                <div class="title">{{ n.attributes.title || '无标题' }}</div>
+                <div class="summary">{{ n.attributes.content || '暂无内容...' }}</div>
             </div>
-            <div class="note-list">
-                <div class="note-item" v-for="note in notes" :key="note.id" 
-                     :class="{ active: currentNote && currentNote.id === note.id }"
-                     @click="selectNote(note)">
-                    <div class="note-preview-title">{{ note.attributes.title || '无标题' }}</div>
-                    <div class="note-preview-content">{{ note.attributes.content || '暂无内容' }}</div>
+            <button @click="logout" style="width:100%; padding:15px; background:none; border:none; color:#555; font-size:12px; cursor:pointer;">退出登录</button>
+        </div>
+    </div>
+
+    <!-- 主编辑区 -->
+    <div class="main-area" v-if="currentNote">
+        <div class="mobile-nav">
+            <button class="back-btn" @click="isMobileShow = false">‹ 列表</button>
+            <span style="font-size:12px; color:#999">{{ saving ? '保存中...' : '已同步' }}</span>
+            <div style="width:40px"></div>
+        </div>
+
+        <div class="editor-container">
+            <div class="paper" :class="[currentNote.attributes.theme || 'theme-white', currentNote.attributes.font || 'font-sans']">
+                <div class="paper-header">
+                    <input class="input-title" v-model="currentNote.attributes.title" @input="doSave" placeholder="标题">
+                </div>
+                <div class="paper-body">
+                    <textarea ref="editor" class="input-content" v-model="currentNote.attributes.content" @input="onInput" placeholder="在这里输入..."></textarea>
                 </div>
             </div>
         </div>
 
-        <!-- 编辑区 -->
-        <div class="main-area" v-if="currentNote">
-            <div class="mobile-nav">
-                <button class="back-btn" @click="isEditingMobile = false">‹ 返回</button>
-                <span style="font-size:12px; color:#999">{{ isSaving ? '同步中...' : '已加密保存' }}</span>
-                <div style="width: 40px"></div>
-            </div>
-
-            <div class="editor-wrapper">
-                <div class="paper-sheet" :class="[currentNote.attributes.theme || 'theme-white']">
-                    <div class="paper-header">
-                        <input class="input-title" v-model="currentNote.attributes.title" @input="onInput" placeholder="标题">
-                    </div>
-                    <div class="paper-body">
-                        <textarea ref="editor" class="input-content" 
-                            v-model="currentNote.attributes.content" @input="onInput"
-                            placeholder="开始写作..."></textarea>
-                    </div>
+        <!-- 浮动工具栏 -->
+        <div class="toolbar">
+            <div class="style-card" v-if="showStyle">
+                <span class="style-label">选择信纸</span>
+                <div class="theme-row">
+                    <div class="theme-dot theme-white" @click="updateAttr('theme','theme-white')" :class="{active: currentNote.attributes.theme=='theme-white'}"></div>
+                    <div class="theme-dot theme-grid" @click="updateAttr('theme','theme-grid')" :class="{active: currentNote.attributes.theme=='theme-grid'}"></div>
+                    <div class="theme-dot theme-retro" @click="updateAttr('theme','theme-retro')" :class="{active: currentNote.attributes.theme=='theme-retro'}"></div>
+                    <div class="theme-dot theme-dark" @click="updateAttr('theme','theme-dark')" :class="{active: currentNote.attributes.theme=='theme-dark'}"></div>
                 </div>
+                <span class="style-label">选择字体</span>
+                <select v-model="currentNote.attributes.font" @change="doSave" style="width:100%; padding:5px;">
+                    <option value="font-sans">标准黑体</option>
+                    <option value="font-serif">人文宋体</option>
+                </select>
             </div>
-
-            <div class="toolbar-dock">
-                <button class="fab" @click="deleteNote" style="color: #d95e48;">🗑️</button>
-                <button class="fab primary" @click="generateLongImage">✨</button>
-            </div>
+            <button class="fab" @click="showStyle = !showStyle">🎨</button>
+            <button class="fab" @click="deleteNote" style="color:var(--primary-red)">🗑️</button>
+            <button class="fab primary" @click="exportImg">✨</button>
         </div>
-    </template>
-    
-    <div id="staging"></div>
+    </div>
+
+    <!-- 离屏渲染容器 -->
+    <div id="render-box"></div>
 </div>
 
 <script>
@@ -182,98 +187,89 @@ const CONFIG = {
 
 createApp({
     setup() {
-        const currentUser = ref(null);
-        const authMode = ref('login');
-        const authForm = ref({ username: '', password: '' });
+        const user = ref(null);
+        const isReg = ref(false);
+        const auth = ref({ u: '', p: '' });
         const notes = ref([]);
         const currentNote = ref(null);
-        const isEditingMobile = ref(false);
-        const isLoading = ref(false);
-        const isSaving = ref(false);
-        const isGenerating = ref(false);
+        const isMobileShow = ref(false);
+        const loading = ref(false);
+        const saving = ref(false);
+        const generating = ref(false);
+        const showStyle = ref(false);
         const editor = ref(null);
-        let saveTimer = null;
+        let timer = null;
 
         onMounted(() => {
             AV.init(CONFIG);
-            currentUser.value = AV.User.current();
-            if (currentUser.value) loadNotes();
+            user.value = AV.User.current();
+            if (user.value) loadData();
         });
 
-        // --- 认证逻辑 ---
         const handleAuth = async () => {
-            if (!authForm.value.username || !authForm.value.password) return alert("请填写完整信息");
-            isLoading.value = true;
+            if (!auth.value.u || !auth.value.p) return alert("请输入完整信息");
+            loading.value = true;
             try {
-                if (authMode.value === 'login') {
-                    currentUser.value = await AV.User.logIn(authForm.value.username, authForm.value.password);
+                if (isReg.value) {
+                    const u = new AV.User();
+                    u.setUsername(auth.value.u); u.setPassword(auth.value.p);
+                    user.value = await u.signUp();
                 } else {
-                    const user = new AV.User();
-                    user.setUsername(authForm.value.username);
-                    user.setPassword(authForm.value.password);
-                    currentUser.value = await user.signUp();
+                    user.value = await AV.User.logIn(auth.value.u, auth.value.p);
                 }
-                loadNotes();
-            } catch (e) {
-                alert("失败: " + e.message);
-            } finally { isLoading.value = false; }
+                loadData();
+            } catch (e) { alert("认证失败: " + e.message); }
+            finally { loading.value = false; }
         };
 
-        const logout = () => {
-            AV.User.logOut();
-            currentUser.value = null;
-            notes.value = [];
-            currentNote.value = null;
-        };
-
-        // --- 笔记逻辑 ---
-        const loadNotes = async () => {
-            isLoading.value = true;
+        const loadData = async () => {
+            loading.value = true;
             try {
-                const query = new AV.Query('Note');
-                // 核心：LeanCloud 的 ACL 会自动过滤掉用户无权查看的笔记
-                query.descending('updatedAt');
-                notes.value = await query.find();
-            } finally { isLoading.value = false; }
+                const q = new AV.Query('Note');
+                q.descending('updatedAt');
+                notes.value = await q.find();
+                if (window.innerWidth > 768 && notes.value.length > 0) openNote(notes.value[0]);
+            } finally { loading.value = false; }
         };
 
         const createNote = async () => {
-            isLoading.value = true;
+            loading.value = true;
             try {
                 const Note = AV.Object.extend('Note');
                 const n = new Note();
-                n.set('title', ''); 
-                n.set('content', '');
-                
-                // 🔐 设置权限：仅当前用户可读写
+                n.set('title', ''); n.set('content', ''); n.set('theme', 'theme-white');
                 const acl = new AV.ACL();
-                acl.setReadAccess(currentUser.value, true);
-                acl.setWriteAccess(currentUser.value, true);
+                acl.setReadAccess(user.value, true); acl.setWriteAccess(user.value, true);
                 n.setACL(acl);
-
                 const saved = await n.save();
                 notes.value.unshift(saved);
-                selectNote(saved);
-            } finally { isLoading.value = false; }
+                openNote(saved);
+            } finally { loading.value = false; }
         };
 
-        const selectNote = (note) => {
-            currentNote.value = note;
-            isEditingMobile.value = true;
-            nextTick(autoResize);
+        const openNote = (n) => {
+            currentNote.value = n;
+            isMobileShow.value = true;
+            nextTick(autoHeight);
         };
 
-        const onInput = () => {
-            autoResize();
-            if (saveTimer) clearTimeout(saveTimer);
-            saveTimer = setTimeout(async () => {
-                isSaving.value = true;
+        const onInput = () => { autoHeight(); doSave(); };
+        
+        const doSave = () => {
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(async () => {
+                saving.value = true;
                 try { await currentNote.value.save(); } 
-                finally { isSaving.value = false; }
+                finally { saving.value = false; }
             }, 1000);
         };
 
-        const autoResize = () => {
+        const updateAttr = (k, v) => {
+            currentNote.value.set(k, v);
+            doSave();
+        };
+
+        const autoHeight = () => {
             if (editor.value) {
                 editor.value.style.height = 'auto';
                 editor.value.style.height = editor.value.scrollHeight + 'px';
@@ -281,42 +277,65 @@ createApp({
         };
 
         const deleteNote = async () => {
-            if (!confirm("确定删除吗？")) return;
+            if (!confirm("确定彻底删除这条云端便签吗？")) return;
             const id = currentNote.value.id;
+            loading.value = true;
             try {
+                // 1. 本地立即移除 (解决UI卡顿)
+                notes.value = notes.value.filter(item => item.id !== id);
+                // 2. 尝试从云端删除
                 await currentNote.value.destroy();
-                notes.value = notes.value.filter(n => n.id !== id);
+            } catch (e) {
+                console.warn("云端删除跳过(可能无权限或已删除)");
+            } finally {
                 currentNote.value = null;
-                isEditingMobile.value = false;
-            } catch (e) { alert("删除失败"); }
+                isMobileShow.value = false;
+                loading.value = false;
+            }
         };
 
-        const generateLongImage = async () => {
-            isGenerating.value = true;
-            const staging = document.getElementById('staging');
-            staging.innerHTML = '';
+        const exportImg = async () => {
+            generating.value = true;
+            showStyle.value = false;
+            const box = document.getElementById('render-box');
+            box.innerHTML = '';
             try {
-                const clone = document.querySelector('.paper-sheet').cloneNode(true);
+                // 核心：创建一个不受浏览器滚动影响的、全展开的纸张
+                const clone = document.querySelector('.paper').cloneNode(true);
                 const text = clone.querySelector('textarea');
-                const div = document.createElement('div');
-                div.style.cssText = "white-space: pre-wrap; font-size:18px; line-height:1.8; padding-bottom:50px;";
-                div.innerText = currentNote.value.attributes.content;
-                text.parentNode.replaceChild(div, text);
-                staging.appendChild(clone);
-                const canvas = await html2canvas(clone, { scale: 2, useCORS: true });
+                const p = document.createElement('div');
+                p.style.cssText = "white-space: pre-wrap; font-size:18px; line-height:1.8; padding-bottom:100px; min-height:600px;";
+                p.innerText = currentNote.value.attributes.content;
+                text.parentNode.replaceChild(p, text);
+                box.appendChild(clone);
+
+                // 给渲染一点时间
+                await new Promise(r => setTimeout(r, 500));
+
+                const canvas = await html2canvas(clone, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: null,
+                    height: clone.scrollHeight, // 关键：使用克隆对象的完整滚动高度
+                    windowHeight: clone.scrollHeight
+                });
+                
                 const link = document.createElement('a');
                 link.download = `Note_${Date.now()}.png`;
                 link.href = canvas.toDataURL("image/png");
                 link.click();
-            } finally { 
-                isGenerating.value = false; 
-                staging.innerHTML = '';
-            }
+            } catch (e) { alert("生成长图失败，请稍后重试"); }
+            finally { generating.value = false; box.innerHTML = ''; }
+        };
+
+        const logout = () => {
+            AV.User.logOut();
+            location.reload();
         };
 
         return {
-            currentUser, authMode, authForm, notes, currentNote, isEditingMobile, isLoading, isSaving, isGenerating, editor,
-            handleAuth, logout, selectNote, createNote, onInput, deleteNote, generateLongImage
+            user, isReg, auth, notes, currentNote, isMobileShow, loading, saving, generating, showStyle, editor,
+            handleAuth, createNote, openNote, onInput, updateAttr, deleteNote, exportImg, logout
         };
     }
 }).mount('#app');
