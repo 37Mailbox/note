@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Smartisan Notes Pro</title>
-    <!-- 字体引用：增加霞鹜文楷，移除杂乱书法 -->
+    <!-- 字体：文楷 + 宋体 + 黑体 -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@400;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-webfont@1.1.0/style.css" />
     
@@ -13,114 +13,107 @@
     <script src="https://unpkg.com/leancloud-storage@4.15.0/dist/av-min.js"></script>
     
     <style>
-        :root { --primary-red: #d95e48; --bg-pc: #3d3d3d; --sidebar-dark: #2d2d2d; }
+        :root { --primary-red: #d95e48; --bg-dark: #3d3d3d; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-        body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: #f0f0f0; font-family: "PingFang SC", sans-serif; overflow: hidden; }
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: #2d2d2d; font-family: "PingFang SC", sans-serif; overflow: hidden; }
         
-        #app { height: 100vh; width: 100vw; display: flex; color: #333; }
+        #app { height: 100vh; width: 100vw; display: flex; }
 
-        /* --- 通用：遮罩层 --- */
-        .mask { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; gap: 15px; }
-        .auth-mask { background: var(--bg-pc); }
+        /* --- 登录层 --- */
+        .mask { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; gap: 15px; }
         .auth-card { background: #f2f2f2; width: 90%; max-width: 340px; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
         .auth-header { background: var(--primary-red); padding: 25px; text-align: center; color: white; }
         .auth-body { padding: 25px; }
-        .auth-input { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
+        .auth-input { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; color:#333; }
         .auth-btn { width: 100%; padding: 14px; background: var(--primary-red); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
-        /* --- 布局 A：电脑端 (PC) --- */
-        .pc-layout { display: flex; width: 100%; height: 100%; }
-        .pc-sidebar { width: 320px; background: var(--sidebar-dark); display: flex; flex-direction: column; border-right: 1px solid #1a1a1a; }
-        .pc-main { flex: 1; background: #e5e5e5; display: flex; flex-direction: column; position: relative; overflow-y: auto; padding: 40px 20px; align-items: center; }
+        /* --- PC端布局 --- */
+        .pc-layout { display: flex; width: 100%; height: 100%; background: #e0e0e0; }
+        .sidebar { width: 300px; background: #2d2d2d; display: flex; flex-direction: column; border-right: 1px solid #1a1a1a; }
+        .main-content { flex: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; padding: 50px 20px; }
         
-        /* --- 布局 B：移动端 (Mobile) --- */
-        .mobile-layout { width: 100%; height: 100%; display: flex; flex-direction: column; background: #fff; }
-        .mobile-header { height: 50px; background: #f8f8f8; border-bottom: 1px solid #ddd; display: flex; align-items: center; padding: 0 15px; justify-content: space-between; }
-        .mobile-content { flex: 1; overflow-y: auto; }
-        .mobile-list { height: 100%; overflow-y: auto; background: #fff; }
+        /* --- 移动端布局 --- */
+        .mobile-layout { width: 100%; height: 100%; background: #fff; display: flex; flex-direction: column; }
+        .m-header { height: 50px; background: #f8f8f8; border-bottom: 1px solid #ddd; display: flex; align-items: center; padding: 0 15px; justify-content: space-between; flex-shrink: 0; }
+        .m-scroll { flex: 1; overflow-y: auto; background: #fff; }
 
-        /* --- 便签列表样式 --- */
-        .list-header { padding: 20px; border-bottom: 1px solid #3a3a3a; display: flex; justify-content: space-between; align-items: center; color: #eee; }
-        .note-item { padding: 18px 20px; border-bottom: 1px solid #333; cursor: pointer; transition: 0.2s; }
+        /* --- 列表通用 --- */
+        .list-title { padding: 20px; color: #eee; font-weight: bold; border-bottom: 1px solid #3a3a3a; display: flex; justify-content: space-between; align-items: center; }
+        .note-item { padding: 18px 20px; border-bottom: 1px solid #333; cursor: pointer; }
         .note-item.active { background: #3d3d3d; border-left: 4px solid var(--primary-red); }
         .note-item .t { color: #eee; font-size: 14px; font-weight: bold; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .note-item .s { color: #888; font-size: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        
-        /* 移动端列表项 */
-        .m-note-item { padding: 15px; border-bottom: 1px solid #eee; }
-        .m-note-item .t { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
-        .m-note-item .s { font-size: 13px; color: #888; }
 
-        /* --- 编辑纸张样式 --- */
+        /* --- 编辑纸张 --- */
         .paper { 
-            width: 100%; max-width: 600px; min-height: 800px; 
-            background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
-            display: flex; flex-direction: column; transition: 0.3s;
+            width: 100%; max-width: 600px; min-height: 800px; height: auto;
+            background: #fff; box-shadow: 0 10px 40px rgba(0,0,0,0.1); 
+            display: flex; flex-direction: column; position: relative;
         }
-        .paper-body { padding: 40px 45px; flex: 1; }
+        .paper-inner { padding: 40px 45px 80px 45px; }
         .input-title { width: 100%; border: none; background: transparent; font-size: 28px; font-weight: 900; margin-top: 10px; margin-bottom: 20px; font-family: inherit; }
-        .input-content { width: 100%; border: none; background: transparent; font-size: 18px; line-height: 1.8; resize: none; min-height: 600px; font-family: inherit; text-align: justify; }
+        .input-content { 
+            width: 100%; border: none; background: transparent; font-size: 18px; line-height: 1.8; 
+            resize: none; font-family: inherit; overflow: hidden; /* 关键：交给 JS 计算高度 */
+        }
 
-        /* --- 导出专用头 --- */
-        .export-header { padding: 60px 45px 20px 45px; border-bottom: 1px solid rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .export-title { font-size: 30px; font-weight: 900; }
+        /* --- 导出渲染 --- */
+        .export-node { width: 500px; background: white; position: relative; }
+        .export-header { padding: 60px 45px 20px 45px; border-bottom: 1px solid rgba(0,0,0,0.05); }
 
-        /* --- 字体/主题定义 --- */
-        .theme-white { background: #fff !important; color: #333; }
+        /* --- 主题与字体 --- */
+        .theme-white { background-color: #ffffff !important; color: #333; }
         .theme-grid { background-color: #f9fbfd !important; background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M24 0v24H0' stroke='%23000' stroke-opacity='0.04' stroke-width='0.5' fill='none'/%3E%3C/svg%3E") !important; }
         .theme-retro { background-color: #fcf5e5 !important; color: #5c4b37; }
         .theme-kraft { background-color: #e6d5b8 !important; color: #4a3e2e !important; }
-        
+
         .font-sans { font-family: "Noto Sans SC", sans-serif; }
         .font-wenkai { font-family: "LXGW WenKai Screen", sans-serif; }
         .font-serif { font-family: "Noto Serif SC", serif; }
 
         /* --- 工具栏 --- */
-        .toolbar { position: fixed; bottom: 30px; right: 30px; display: flex; flex-direction: column; gap: 12px; z-index: 1000; }
-        .fab { width: 54px; height: 54px; border-radius: 50%; background: #fff; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+        .toolbar { position: fixed; bottom: 30px; right: 30px; display: flex; flex-direction: column; gap: 12px; z-index: 5000; }
+        .fab { width: 56px; height: 56px; border-radius: 50%; background: #fff; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 22px; }
         .fab.primary { background: var(--primary-red); color: white; }
         
-        .style-panel { position: absolute; bottom: 70px; right: 0; background: #fff; width: 240px; padding: 20px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .style-card { position: absolute; bottom: 75px; right: 0; background: #fff; width: 240px; padding: 20px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
         .dot-row { display: flex; gap: 8px; margin: 10px 0 20px 0; }
-        .dot { width: 30px; height: 30px; border-radius: 4px; border: 2px solid #eee; cursor: pointer; }
+        .dot { width: 32px; height: 32px; border-radius: 6px; border: 2px solid #eee; cursor: pointer; }
         .dot.active { border-color: var(--primary-red); }
 
-        /* 导出区离屏 */
-        #staging { position: absolute; left: -9999px; width: 500px; }
+        #staging { position: absolute; left: -9999px; top: 0; width: 500px; visibility: hidden; }
     </style>
 </head>
 <body>
 
 <div id="app">
-    <!-- 1. 登录逻辑 -->
-    <div class="mask auth-mask" v-if="!user">
+    <!-- 登录遮罩 -->
+    <div class="mask" v-if="!user">
         <div class="auth-card">
             <div class="auth-header"><h3>Smartisan Notes Pro</h3></div>
             <div class="auth-body">
                 <input class="auth-input" v-model="auth.u" placeholder="用户名">
                 <input class="auth-input" type="password" v-model="auth.p" placeholder="密码">
                 <button class="auth-btn" @click="handleAuth">{{ isReg ? '注册并登录' : '立即登录' }}</button>
-                <p @click="isReg=!isReg" style="text-align:center; font-size:12px; color:#888; cursor:pointer; margin-top:15px;">
-                    {{ isReg ? '已有账号？去登录' : '没有账号？点击注册' }}
-                </p>
+                <div @click="isReg=!isReg" style="text-align:center; margin-top:15px; font-size:12px; color:#999; cursor:pointer;">
+                    {{ isReg ? '已有账号？去登录' : '新用户？点击注册' }}
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- 2. 全局加载状态 -->
+    <!-- 处理中遮罩 -->
     <div class="mask" v-if="loading || processing">
-        <div style="font-size:30px;">{{ processing ? '✨' : '☁️' }}</div>
-        <div>{{ processing ? '正在生成长图...' : '同步数据中...' }}</div>
+        <div style="font-size:32px;">{{ processing ? '🎨' : '☁️' }}</div>
+        <div>{{ processing ? '正在生成长图...' : '同步云端数据...' }}</div>
     </div>
 
-    <!-- 3. 主界面布局 -->
-    
-    <!-- 电脑端：双栏 -->
-    <div v-if="!isMobile && user" class="pc-layout">
-        <div class="pc-sidebar">
-            <div class="list-header">
-                <span>我的便签 ({{notes.length}})</span>
-                <button @click="createNote" style="background:var(--primary-red); color:#fff; border:none; padding:4px 12px; border-radius:4px; font-weight:bold;">+ 新建</button>
+    <!-- 桌面布局 -->
+    <div v-if="user && !isMobile" class="pc-layout">
+        <div class="sidebar">
+            <div class="list-title">
+                <span>便签 ({{notes.length}})</span>
+                <button @click="createNote" style="background:var(--primary-red); color:white; border:none; padding:4px 12px; border-radius:4px; font-weight:bold; cursor:pointer;">+ 新建</button>
             </div>
             <div style="flex:1; overflow-y:auto;">
                 <div class="note-item" v-for="n in notes" :key="n.id" :class="{active: currentNote?.id == n.id}" @click="openNote(n)">
@@ -128,67 +121,67 @@
                     <div class="s">{{ n.get('content') || '暂无内容...' }}</div>
                 </div>
             </div>
-            <div @click="logout" style="padding:15px; color:#666; font-size:12px; cursor:pointer; text-align:center;">退出登录</div>
+            <div @click="logout" style="padding:15px; color:#666; font-size:12px; text-align:center; cursor:pointer;">退出当前账号</div>
         </div>
-        <div class="pc-main" v-if="currentNote">
-            <div style="margin-bottom:10px; font-size:12px; color:#888;">{{ saveStatus }}</div>
+        <div class="main-content" v-if="currentNote">
+            <div style="margin-bottom:12px; font-size:12px; color:#888;">{{ saveStatus }}</div>
             <div class="paper" :class="[currentNote.get('theme') || 'theme-white', currentNote.get('font') || 'font-sans']">
-                <div class="paper-body">
+                <div class="paper-inner">
                     <input class="input-title" v-model="editorData.title" @input="triggerSave" placeholder="输入标题">
-                    <textarea ref="editor" class="input-content" v-model="editorData.content" @input="onInput" placeholder="写点什么..."></textarea>
+                    <textarea ref="editor" class="input-content" v-model="editorData.content" @input="onInput" placeholder="在此开始写作..."></textarea>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 移动端：单栏全屏切换 -->
-    <div v-if="isMobile && user" class="mobile-layout">
-        <!-- 列表视图 -->
-        <div v-if="!currentNote" class="mobile-list">
-            <div class="mobile-header">
+    <!-- 移动端布局 -->
+    <div v-if="user && isMobile" class="mobile-layout">
+        <!-- 列表 -->
+        <div v-if="!currentNote" class="m-scroll">
+            <div class="m-header">
                 <span style="font-weight:bold;">我的便签</span>
                 <button @click="createNote" style="color:var(--primary-red); background:none; border:none; font-size:16px; font-weight:bold;">+ 新建</button>
             </div>
-            <div class="m-note-item" v-for="n in notes" :key="n.id" @click="openNote(n)">
-                <div class="t">{{ n.get('title') || '无标题' }}</div>
-                <div class="s">{{ n.get('content') || '暂无内容...' }}</div>
+            <div class="note-item" style="border-bottom-color:#eee" v-for="n in notes" :key="n.id" @click="openNote(n)">
+                <div class="t" style="color:#333">{{ n.get('title') || '无标题' }}</div>
+                <div class="s" style="color:#888">{{ n.get('content') || '暂无内容...' }}</div>
             </div>
-            <div @click="logout" style="padding:30px; text-align:center; color:#999; font-size:12px;">退出账号</div>
+            <div @click="logout" style="padding:40px; text-align:center; color:#ccc; font-size:12px;">退出登录</div>
         </div>
-        <!-- 编辑视图 -->
+        <!-- 编辑 -->
         <div v-else style="height:100%; display:flex; flex-direction:column;">
-            <div class="mobile-header">
-                <button @click="closeNote" style="color:var(--primary-red); background:none; border:none; font-size:16px;">‹ 列表</button>
-                <span style="font-size:12px; color:#999;">{{ saveStatus }}</span>
+            <div class="m-header">
+                <button @click="currentNote=null" style="color:var(--primary-red); background:none; border:none; font-size:16px;">‹ 列表</button>
+                <span style="font-size:12px; color:#999">{{ saveStatus }}</span>
                 <button @click="deleteNote" style="color:#999; background:none; border:none;">删除</button>
             </div>
-            <div class="mobile-content" :class="[currentNote.get('theme'), currentNote.get('font')]">
+            <div class="m-scroll" :class="[editorData.theme, editorData.font]">
                 <div style="padding:20px;">
                     <input class="input-title" v-model="editorData.title" @input="triggerSave" placeholder="标题">
-                    <textarea ref="editor" class="input-content" v-model="editorData.content" @input="onInput" placeholder="写点什么..."></textarea>
+                    <textarea ref="editor" class="input-content" v-model="editorData.content" @input="onInput" placeholder="点击输入内容..."></textarea>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 通用工具栏 (仅在编辑时显示) -->
+    <!-- 工具栏 (仅编辑时) -->
     <div class="toolbar" v-if="currentNote">
-        <div class="style-panel" v-if="showStyle">
-            <div style="font-size:11px; color:#999;">切换信纸</div>
+        <div class="style-card" v-if="showStyle">
+            <div style="font-size:11px; color:#999;">背景信纸</div>
             <div class="dot-row">
-                <div v-for="t in themes" :key="t" :class="['dot', t, {active: currentNote.get('theme')==t}]" @click="updateAttr('theme', t)"></div>
+                <div v-for="t in themes" :key="t" :class="['dot', t, {active: editorData.theme==t}]" @click="updateAttr('theme', t)"></div>
             </div>
-            <div style="font-size:11px; color:#999; margin-top:10px;">选择字体</div>
-            <select v-model="editorData.font" @change="updateAttr('font', editorData.font)" style="width:100%; margin-top:5px; padding:5px;">
+            <div style="font-size:11px; color:#999;">正文字体</div>
+            <select v-model="editorData.font" @change="updateAttr('font', editorData.font)" style="width:100%; padding:6px; margin:8px 0 15px 0;">
                 <option value="font-sans">标准黑体</option>
                 <option value="font-wenkai">霞鹜文楷</option>
                 <option value="font-serif">经典宋体</option>
             </select>
-            <div style="font-size:11px; color:#999; margin-top:10px;">长图分段</div>
-            <select v-model="splitCount" style="width:100%; margin-top:5px; padding:5px;">
-                <option :value="1">不切分 (单张)</option>
-                <option :value="2">智能切 2 张</option>
-                <option :value="3">智能切 3 张</option>
+            <div style="font-size:11px; color:#999;">智能切分</div>
+            <select v-model="splitCount" style="width:100%; padding:6px; margin:8px 0 0 0;">
+                <option :value="1">单张长图</option>
+                <option :value="2">分为 2 张</option>
+                <option :value="3">分为 3 张</option>
             </select>
         </div>
         <button class="fab" @click="showStyle=!showStyle">🎨</button>
@@ -196,12 +189,12 @@
         <button class="fab primary" @click="exportImages">✨</button>
     </div>
 
-    <!-- 离屏渲染 -->
+    <!-- 离屏渲染容器 -->
     <div id="staging"></div>
 </div>
 
 <script>
-const { createApp, ref, onMounted, nextTick, reactive, watch } = Vue;
+const { createApp, ref, reactive, onMounted, nextTick } = Vue;
 
 const CONFIG = {
     appId: 'E1rPatvQJfGDx7FnsXpGTHN1-gzGzoHsz',
@@ -220,14 +213,13 @@ createApp({
         
         const notes = ref([]);
         const currentNote = ref(null);
-        const editorData = reactive({ title: '', content: '', theme: '', font: '' });
-        const saveStatus = ref('已同步云端');
-        let saveTimer = null;
-
-        const showStyle = ref(false);
-        const splitCount = ref(1);
+        const editorData = reactive({ title: '', content: '', theme: 'theme-white', font: 'font-sans' });
+        const saveStatus = ref('已保存');
         const themes = ['theme-white', 'theme-grid', 'theme-retro', 'theme-kraft'];
+        const splitCount = ref(1);
+        const showStyle = ref(false);
         const editor = ref(null);
+        let saveTimer = null;
 
         onMounted(() => {
             AV.init(CONFIG);
@@ -237,18 +229,17 @@ createApp({
         });
 
         const handleAuth = async () => {
-            if (!auth.u || !auth.p) return alert("请输入完整信息");
+            if (!auth.u || !auth.p) return alert("信息不全");
             loading.value = true;
             try {
                 if (isReg.value) {
-                    const u = new AV.User();
-                    u.setUsername(auth.u); u.setPassword(auth.p);
+                    const u = new AV.User(); u.setUsername(auth.u); u.setPassword(auth.p);
                     user.value = await u.signUp();
                 } else {
                     user.value = await AV.User.logIn(auth.u, auth.p);
                 }
                 loadNotes();
-            } catch (e) { alert("登录失败：" + e.message); }
+            } catch (e) { alert("操作失败: " + e.message); }
             finally { loading.value = false; }
         };
 
@@ -258,11 +249,10 @@ createApp({
                 const q = new AV.Query('Note');
                 q.descending('updatedAt');
                 const res = await q.find();
-                // 数据清洗：只保留有 ID 且不是空的便签
-                notes.value = res.filter(n => n.id);
+                // 1. 强力清洗：过滤掉完全为空的死数据
+                notes.value = res.filter(n => (n.get('title') || n.get('content')));
                 
-                // 自动恢复最后一次编辑
-                const lastId = localStorage.getItem('sn_last_id');
+                const lastId = localStorage.getItem('last_id');
                 if (lastId) {
                     const last = notes.value.find(n => n.id === lastId);
                     if (last) openNote(last);
@@ -275,9 +265,9 @@ createApp({
             try {
                 const Note = AV.Object.extend('Note');
                 const n = new Note();
-                n.set('title', ''); n.set('content', ''); n.set('theme', 'theme-white'); n.set('font', 'font-sans');
+                n.set('title', ''); n.set('content', '');
+                n.set('theme', 'theme-white'); n.set('font', 'font-sans');
                 
-                // 关键修复：显式设置 ACL 确保同账号全平台可见
                 const acl = new AV.ACL();
                 acl.setReadAccess(user.value, true);
                 acl.setWriteAccess(user.value, true);
@@ -286,8 +276,7 @@ createApp({
                 const saved = await n.save();
                 notes.value.unshift(saved);
                 openNote(saved);
-            } catch (e) { alert("新建失败"); }
-            finally { loading.value = false; }
+            } finally { loading.value = false; }
         };
 
         const openNote = (n) => {
@@ -296,22 +285,20 @@ createApp({
             editorData.content = n.get('content') || '';
             editorData.theme = n.get('theme') || 'theme-white';
             editorData.font = n.get('font') || 'font-sans';
-            localStorage.setItem('sn_last_id', n.id);
+            localStorage.setItem('last_id', n.id);
             nextTick(autoHeight);
         };
-
-        const closeNote = () => { currentNote.value = null; };
 
         const onInput = () => { autoHeight(); triggerSave(); };
         const autoHeight = () => {
             if (editor.value) {
                 editor.value.style.height = 'auto';
-                editor.value.style.height = (editor.value.scrollHeight + 50) + 'px';
+                editor.value.style.height = (editor.value.scrollHeight) + 'px';
             }
         };
 
         const triggerSave = () => {
-            saveStatus.ref = '同步中...';
+            saveStatus.value = '保存中...';
             if (saveTimer) clearTimeout(saveTimer);
             saveTimer = setTimeout(async () => {
                 if (!currentNote.value) return;
@@ -319,33 +306,38 @@ createApp({
                     currentNote.value.set('title', editorData.title);
                     currentNote.value.set('content', editorData.content);
                     await currentNote.value.save();
-                    saveStatus.value = '已同步云端';
+                    saveStatus.value = '已保存到云端';
                 } catch (e) { saveStatus.value = '保存失败，请检查网络'; }
-            }, 1000);
+            }, 800);
         };
 
         const updateAttr = (k, v) => {
-            if (!currentNote.value) return;
-            currentNote.value.set(k, v);
             editorData[k] = v;
-            triggerSave();
+            if (currentNote.value) {
+                currentNote.value.set(k, v);
+                triggerSave();
+            }
         };
 
         const deleteNote = async () => {
-            if (!confirm("确定删除吗？")) return;
+            if (!confirm("确定彻底删除吗？")) return;
+            const target = currentNote.value;
             try {
-                const id = currentNote.value.id;
-                await currentNote.value.destroy();
-                notes.value = notes.value.filter(n => n.id !== id);
+                // 即使云端因为 ACL 权限无法删除旧数据，本地也强制移除
+                notes.value = notes.value.filter(n => n.id !== target.id);
                 currentNote.value = null;
-                localStorage.removeItem('sn_last_id');
-            } catch (e) { alert("删除失败"); }
+                localStorage.removeItem('last_id');
+                await target.destroy();
+            } catch (e) {
+                console.log("云端同步删除跳过，本地已清理");
+            }
         };
 
         const exportImages = async () => {
             processing.value = true;
             showStyle.value = false;
             const staging = document.getElementById('staging');
+            staging.style.visibility = 'visible'; // 截取前必须变为可见
             staging.innerHTML = '';
             
             const count = parseInt(splitCount.value);
@@ -355,44 +347,58 @@ createApp({
             try {
                 for (let i = 0; i < count; i++) {
                     const node = document.createElement('div');
-                    node.className = `paper ${editorData.theme} ${editorData.font}`;
-                    node.style.boxShadow = 'none';
+                    node.className = `export-node ${editorData.theme} ${editorData.font}`;
                     
                     let inner = '';
                     if (i === 0) {
-                        inner += `<div class="export-header"><div class="export-title">${editorData.title || '无标题'}</div></div>`;
+                        inner += `<div class="export-header"><div style="font-size:30px; font-weight:900;">${editorData.title || '无标题'}</div></div>`;
                     } else {
                         inner += `<div style="height:60px"></div>`;
                     }
 
-                    inner += '<div class="paper-body">';
+                    inner += '<div style="padding:40px 45px;">';
                     paragraphs.slice(i * pPerPage, (i + 1) * pPerPage).forEach(p => {
-                        inner += `<p style="margin-bottom:20px; font-size:18px;">${p || '<br>'}</p>`;
+                        inner += `<p style="margin-bottom:20px; font-size:18px; line-height:1.8; text-align:justify;">${p || '<br>'}</p>`;
                     });
                     inner += '</div>';
                     
-                    if (i === count - 1) inner += `<div style="text-align:center; padding:40px; opacity:0.3; font-size:12px; letter-spacing:2px;">SMARTISAN NOTES</div>`;
+                    if (i === count - 1) {
+                        inner += `<div style="text-align:center; padding:50px; opacity:0.2; font-size:11px; letter-spacing:4px;">SMARTISAN NOTES</div>`;
+                    } else {
+                        inner += `<div style="height:40px"></div>`;
+                    }
 
                     node.innerHTML = inner;
                     staging.appendChild(node);
-                    await new Promise(r => setTimeout(r, 400));
                     
-                    const canvas = await html2canvas(node, { scale: 2.5, useCORS: true });
+                    // 预留足够渲染时间
+                    await new Promise(r => setTimeout(r, 600));
+                    
+                    const canvas = await html2canvas(node, {
+                        scale: isMobile.value ? 2.0 : 2.5, // 手机端降低倍率防止溢出
+                        useCORS: true,
+                        backgroundColor: null
+                    });
+
                     const link = document.createElement('a');
-                    link.download = `Note_${i+1}.png`;
+                    link.download = `Note_Part${i+1}.png`;
                     link.href = canvas.toDataURL("image/png");
                     link.click();
-                    staging.removeChild(node);
+                    staging.innerHTML = '';
                 }
-            } catch (e) { alert("导出失败"); }
-            finally { processing.value = false; }
+            } catch (e) {
+                alert("生成失败，建议增加长图分段数量。");
+            } finally {
+                staging.style.visibility = 'hidden';
+                processing.value = false;
+            }
         };
 
         const logout = () => { AV.User.logOut(); localStorage.clear(); location.reload(); };
 
         return {
             user, auth, isReg, loading, processing, isMobile, notes, currentNote, editorData, saveStatus, themes, showStyle, splitCount, editor,
-            handleAuth, createNote, openNote, closeNote, onInput, updateAttr, triggerSave, deleteNote, exportImages, logout
+            handleAuth, createNote, openNote, onInput, updateAttr, deleteNote, exportImages, logout
         };
     }
 }).mount('#app');
