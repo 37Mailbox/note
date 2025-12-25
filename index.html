@@ -1,234 +1,207 @@
---- START OF FILE index.html ---
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Smartisan Notes Pro</title>
-<!-- 引入更具便签感的现代字体 -->
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@400;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
-<!-- 霞鹜文楷 CDN -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-webfont@1.1.0/style.css" />    
-<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- 字体引用：增加霞鹜文楷，移除杂乱书法 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@400;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-screen-webfont@1.1.0/style.css" />
+    
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://unpkg.com/leancloud-storage@4.15.0/dist/av-min.js"></script>
     
     <style>
-        :root { --primary-red: #d95e48; --bg-dark: #3d3d3d; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg-dark); font-family: "PingFang SC", "Microsoft YaHei", sans-serif; overflow: hidden; }
+        :root { --primary-red: #d95e48; --bg-pc: #3d3d3d; --sidebar-dark: #2d2d2d; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; background: #f0f0f0; font-family: "PingFang SC", sans-serif; overflow: hidden; }
         
-        #app { display: flex; height: 100vh; width: 100vw; position: relative; }
+        #app { height: 100vh; width: 100vw; display: flex; color: #333; }
 
-        /* --- 认证界面 --- */
-        .auth-mask { position: fixed; inset: 0; background: var(--bg-dark); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .auth-card { background: #f2f2f2; width: 100%; max-width: 340px; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); overflow: hidden; }
+        /* --- 通用：遮罩层 --- */
+        .mask { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; gap: 15px; }
+        .auth-mask { background: var(--bg-pc); }
+        .auth-card { background: #f2f2f2; width: 90%; max-width: 340px; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
         .auth-header { background: var(--primary-red); padding: 25px; text-align: center; color: white; }
         .auth-body { padding: 25px; }
-        .auth-input { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 4px; outline: none; font-size: 16px; }
-        .auth-btn { width: 100%; padding: 12px; background: var(--primary-red); color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .auth-input { width: 100%; padding: 14px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
+        .auth-btn { width: 100%; padding: 14px; background: var(--primary-red); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
-        /* --- 侧边栏 --- */
-        .sidebar { width: 300px; background: #2d2d2d; border-right: 1px solid #1a1a1a; display: flex; flex-direction: column; z-index: 10; transition: transform 0.3s; }
-        .sidebar-header { padding: 20px; border-bottom: 1px solid #3a3a3a; display: flex; justify-content: space-between; align-items: center; }
-        .sidebar-header h2 { color: #eee; font-size: 16px; margin: 0; }
-        .note-list { flex: 1; overflow-y: auto; }
-        .note-item { padding: 18px 20px; border-bottom: 1px solid #333; cursor: pointer; }
+        /* --- 布局 A：电脑端 (PC) --- */
+        .pc-layout { display: flex; width: 100%; height: 100%; }
+        .pc-sidebar { width: 320px; background: var(--sidebar-dark); display: flex; flex-direction: column; border-right: 1px solid #1a1a1a; }
+        .pc-main { flex: 1; background: #e5e5e5; display: flex; flex-direction: column; position: relative; overflow-y: auto; padding: 40px 20px; align-items: center; }
+        
+        /* --- 布局 B：移动端 (Mobile) --- */
+        .mobile-layout { width: 100%; height: 100%; display: flex; flex-direction: column; background: #fff; }
+        .mobile-header { height: 50px; background: #f8f8f8; border-bottom: 1px solid #ddd; display: flex; align-items: center; padding: 0 15px; justify-content: space-between; }
+        .mobile-content { flex: 1; overflow-y: auto; }
+        .mobile-list { height: 100%; overflow-y: auto; background: #fff; }
+
+        /* --- 便签列表样式 --- */
+        .list-header { padding: 20px; border-bottom: 1px solid #3a3a3a; display: flex; justify-content: space-between; align-items: center; color: #eee; }
+        .note-item { padding: 18px 20px; border-bottom: 1px solid #333; cursor: pointer; transition: 0.2s; }
         .note-item.active { background: #3d3d3d; border-left: 4px solid var(--primary-red); }
-        .note-item .title { color: #eee; font-size: 14px; font-weight: bold; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .note-item .summary { color: #888; font-size: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-        /* --- 编辑区 --- */
-        .main-area { flex: 1; background: #e0e0e0; display: flex; flex-direction: column; position: relative; z-index: 20; }
-        .mobile-nav { display: none; height: 50px; background: #f9f9f9; border-bottom: 1px solid #bbb; align-items: center; padding: 0 15px; justify-content: space-between; }
-        .back-btn { color: var(--primary-red); font-weight: bold; background: none; border: none; font-size: 16px; }
-
-        .editor-container { flex: 1; overflow-y: auto; padding: 30px 15px; display: flex; justify-content: center; }
-
-        /* --- 纸张样式 & 间距修复 --- */
-        #capture-node, .paper { 
-            width: 100%; max-width: 500px; min-height: 700px; height: fit-content;
-            background: #fff; box-shadow: 0 10px 40px rgba(0,0,0,0.1); 
-            position: relative; color: #333; transition: 0.3s;
-            display: flex; flex-direction: column;
-        }
+        .note-item .t { color: #eee; font-size: 14px; font-weight: bold; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .note-item .s { color: #888; font-size: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         
-        /* 导出时的标题头：恢复到 60px 舒适高度 */
-        .art-header { padding: 60px 45px 30px 45px; border-bottom: 1px solid rgba(0,0,0,0.05); margin-bottom: 30px; }
-        .art-title { font-size: 30px; font-weight: 900; line-height: 1.3; letter-spacing: -0.5px; word-break: break-all; }
+        /* 移动端列表项 */
+        .m-note-item { padding: 15px; border-bottom: 1px solid #eee; }
+        .m-note-item .t { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
+        .m-note-item .s { font-size: 13px; color: #888; }
 
-        /* 编辑框内容的间距：增加顶部留白 */
-        .paper-body { padding: 40px 45px 80px 45px; flex: 1; }
-        
-        /* 正文排版：修复空格，增加呼吸感 */
-        .art-content p, .input-content { 
-            margin: 0 0 24px 0; font-size: 18px; line-height: 1.85; 
-            text-align: justify; text-justify: inter-ideograph;
-            word-wrap: break-word; word-break: break-all;
-            letter-spacing: normal;
+        /* --- 编辑纸张样式 --- */
+        .paper { 
+            width: 100%; max-width: 600px; min-height: 800px; 
+            background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+            display: flex; flex-direction: column; transition: 0.3s;
         }
+        .paper-body { padding: 40px 45px; flex: 1; }
+        .input-title { width: 100%; border: none; background: transparent; font-size: 28px; font-weight: 900; margin-top: 10px; margin-bottom: 20px; font-family: inherit; }
+        .input-content { width: 100%; border: none; background: transparent; font-size: 18px; line-height: 1.8; resize: none; min-height: 600px; font-family: inherit; text-align: justify; }
 
-        /* 编辑模式下的标题：增加 margin-top 解决你说的顶部太小问题 */
-        .input-title { width: 100%; border: none; outline: none; background: transparent; font-size: 28px; font-weight: 900; margin-top: 20px; margin-bottom: 15px; font-family: inherit; }
-        .input-content { width: 100%; border: none; outline: none; background: transparent; resize: none; min-height: 600px; font-family: inherit; }
-        
-        .art-footer {
-            margin-top: auto; padding: 50px 0; text-align: center;
-            opacity: 0.25; font-size: 11px; letter-spacing: 4px;
-            text-transform: uppercase; font-weight: 700;
-        }
+        /* --- 导出专用头 --- */
+        .export-header { padding: 60px 45px 20px 45px; border-bottom: 1px solid rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .export-title { font-size: 30px; font-weight: 900; }
 
-        /* --- 主题系统 --- */
-        .theme-white { background: #ffffff !important; color: #1f2937; }
-        .theme-grid { 
-            background-color: #f9fbfd !important; 
-            background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M24 0v24H0' stroke='%23000' stroke-opacity='0.04' stroke-width='0.5' fill='none'/%3E%3C/svg%3E") !important; 
-        }
-        .theme-retro { 
-            background-color: #fcf5e5 !important; color: #5c4b37; 
-            background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='2' cy='2' r='1' fill='%23d6ceaa' fill-opacity='0.6'/%3E%3C/svg%3E") !important; 
-        }
-        .theme-dark { 
-            background-color: #1a1a1a !important; color: #a0a0a0 !important; 
-            background-image: url("data:image/svg+xml,%3Csvg width='100%25' height='30' viewBox='0 0 100 30' preserveAspectRatio='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cline x1='0' y1='29' x2='100' y2='29' stroke='white' stroke-opacity='0.03' stroke-width='1'/%3E%3C/svg%3E") !important;
-            background-size: 100% 30px !important;
-        }
+        /* --- 字体/主题定义 --- */
+        .theme-white { background: #fff !important; color: #333; }
+        .theme-grid { background-color: #f9fbfd !important; background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M24 0v24H0' stroke='%23000' stroke-opacity='0.04' stroke-width='0.5' fill='none'/%3E%3C/svg%3E") !important; }
+        .theme-retro { background-color: #fcf5e5 !important; color: #5c4b37; }
         .theme-kraft { background-color: #e6d5b8 !important; color: #4a3e2e !important; }
-        .theme-bamboo { background-color: #eef2e6 !important; color: #3e4a3e !important; }
-        .theme-navy { background-color: #2c3e50 !important; color: #ecf0f1 !important; }
+        
+        .font-sans { font-family: "Noto Sans SC", sans-serif; }
+        .font-wenkai { font-family: "LXGW WenKai Screen", sans-serif; }
+        .font-serif { font-family: "Noto Serif SC", serif; }
 
-/* --- 优化后的字体系统 --- */
-/* 1. 标准黑体：极简现代感 */
-.font-sans { font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif; }
-
-/* 2. 经典宋体：文学阅读感 */
-.font-serif { font-family: "Noto Serif SC", serif; }
-
-/* 3. 霞鹜文楷：最强便签手写感，清晰且优雅 */
-.font-wenkai { font-family: "LXGW WenKai Screen", sans-serif; font-weight: 400; }
-
-/* 4. 标准楷体：传统公文/书信感 */
-.font-kai { font-family: "STKaiti", "KaiTi", serif; }
-
-/* 5. 站酷小薇：略带艺术感的细体（适合诗歌） */
-.font-art { font-family: "ZCOOL XiaoWei", serif; }
         /* --- 工具栏 --- */
-        .toolbar { position: absolute; bottom: 30px; right: 30px; display: flex; flex-direction: column; gap: 12px; z-index: 100; }
-        .fab { width: 52px; height: 52px; border-radius: 50%; background: #fff; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: 0.2s; }
-        .fab:active { transform: scale(0.9); }
-        .fab.primary { background: var(--primary-red); color: #fff; }
-
-        .style-card { background: #fff; padding: 18px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); width: 250px; margin-bottom: 10px; }
-        .style-label { font-size: 11px; color: #999; margin-bottom: 8px; display: block; font-weight: bold; text-transform: uppercase; }
-        .dot-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
-        .dot { width: 32px; height: 32px; border-radius: 4px; border: 2px solid #eee; cursor: pointer; }
+        .toolbar { position: fixed; bottom: 30px; right: 30px; display: flex; flex-direction: column; gap: 12px; z-index: 1000; }
+        .fab { width: 54px; height: 54px; border-radius: 50%; background: #fff; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+        .fab.primary { background: var(--primary-red); color: white; }
+        
+        .style-panel { position: absolute; bottom: 70px; right: 0; background: #fff; width: 240px; padding: 20px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .dot-row { display: flex; gap: 8px; margin: 10px 0 20px 0; }
+        .dot { width: 30px; height: 30px; border-radius: 4px; border: 2px solid #eee; cursor: pointer; }
         .dot.active { border-color: var(--primary-red); }
 
-        @media (max-width: 768px) {
-            .sidebar { width: 100%; position: fixed; inset: 0; }
-            .main-area { position: fixed; inset: 0; transform: translateX(100%); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-            #app.mobile-active .main-area { transform: translateX(0); }
-            .mobile-nav { display: flex; }
-            .editor-container { padding: 0; background: #fff; }
-            .paper { max-width: none; box-shadow: none; min-height: 100%; }
-            .paper-body { padding: 30px 25px 100px 25px; }
-            .input-title { margin-top: 10px; }
-        }
-
-        .mask { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 3000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; gap: 15px; }
-        #staging-area { position: absolute; left: -9999px; width: 500px; }
+        /* 导出区离屏 */
+        #staging { position: absolute; left: -9999px; width: 500px; }
     </style>
 </head>
 <body>
 
-<div id="app" :class="{'mobile-active': isMobileShow}">
-    <!-- 登录界面 -->
-    <div class="auth-mask" v-if="!user">
+<div id="app">
+    <!-- 1. 登录逻辑 -->
+    <div class="mask auth-mask" v-if="!user">
         <div class="auth-card">
             <div class="auth-header"><h3>Smartisan Notes Pro</h3></div>
             <div class="auth-body">
                 <input class="auth-input" v-model="auth.u" placeholder="用户名">
                 <input class="auth-input" type="password" v-model="auth.p" placeholder="密码">
-                <button class="auth-btn" @click="handleAuth">{{ isReg ? '立即注册' : '登录' }}</button>
-                <div style="text-align:center; font-size:12px; margin-top:15px; color:#666; cursor:pointer;" @click="isReg=!isReg">
-                    {{ isReg ? '返回登录' : '没有账号？去注册' }}
+                <button class="auth-btn" @click="handleAuth">{{ isReg ? '注册并登录' : '立即登录' }}</button>
+                <p @click="isReg=!isReg" style="text-align:center; font-size:12px; color:#888; cursor:pointer; margin-top:15px;">
+                    {{ isReg ? '已有账号？去登录' : '没有账号？点击注册' }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 全局加载状态 -->
+    <div class="mask" v-if="loading || processing">
+        <div style="font-size:30px;">{{ processing ? '✨' : '☁️' }}</div>
+        <div>{{ processing ? '正在生成长图...' : '同步数据中...' }}</div>
+    </div>
+
+    <!-- 3. 主界面布局 -->
+    
+    <!-- 电脑端：双栏 -->
+    <div v-if="!isMobile && user" class="pc-layout">
+        <div class="pc-sidebar">
+            <div class="list-header">
+                <span>我的便签 ({{notes.length}})</span>
+                <button @click="createNote" style="background:var(--primary-red); color:#fff; border:none; padding:4px 12px; border-radius:4px; font-weight:bold;">+ 新建</button>
+            </div>
+            <div style="flex:1; overflow-y:auto;">
+                <div class="note-item" v-for="n in notes" :key="n.id" :class="{active: currentNote?.id == n.id}" @click="openNote(n)">
+                    <div class="t">{{ n.get('title') || '无标题' }}</div>
+                    <div class="s">{{ n.get('content') || '暂无内容...' }}</div>
                 </div>
             </div>
+            <div @click="logout" style="padding:15px; color:#666; font-size:12px; cursor:pointer; text-align:center;">退出登录</div>
         </div>
-    </div>
-
-    <!-- 加载中 -->
-    <div class="mask" v-if="loading || generating">
-        <div style="font-size:32px;">{{ generating ? '✨' : '☁️' }}</div>
-        <div>{{ generating ? '正在智能排版...' : '同步云端数据...' }}</div>
-    </div>
-
-    <!-- 侧边栏 -->
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <h2>我的便签</h2>
-            <button @click="createNote" style="background:var(--primary-red); color:white; border:none; padding:5px 15px; border-radius:4px; font-weight:bold;">+ 新建</button>
-        </div>
-        <div class="note-list">
-            <div class="note-item" v-for="n in notes" :key="n.id" :class="{active: currentNote && currentNote.id==n.id}" @click="openNote(n)">
-                <div class="title">{{ n.attributes.title || '无标题' }}</div>
-                <div class="summary">{{ n.attributes.content || '暂无内容...' }}</div>
-            </div>
-        </div>
-        <button @click="logout" style="padding:15px; background:none; border:none; color:#555; font-size:12px;">退出当前账号</button>
-    </div>
-
-    <!-- 编辑区 -->
-    <div class="main-area" v-if="currentNote">
-        <div class="mobile-nav">
-            <button class="back-btn" @click="isMobileShow=false">‹ 列表</button>
-            <span style="font-size:12px; color:#999">{{ saving ? '保存中...' : '已加密' }}</span>
-            <div style="width:40px"></div>
-        </div>
-
-        <div class="editor-container">
-            <div class="paper" :class="[currentNote.attributes.theme || 'theme-white', currentNote.attributes.font || 'font-sans']">
+        <div class="pc-main" v-if="currentNote">
+            <div style="margin-bottom:10px; font-size:12px; color:#888;">{{ saveStatus }}</div>
+            <div class="paper" :class="[currentNote.get('theme') || 'theme-white', currentNote.get('font') || 'font-sans']">
                 <div class="paper-body">
-                    <input class="input-title" v-model="currentNote.attributes.title" @input="doSave" placeholder="输入标题">
-                    <textarea ref="editor" class="input-content" v-model="currentNote.attributes.content" @input="onInput" placeholder="点击开始写作..."></textarea>
+                    <input class="input-title" v-model="editorData.title" @input="triggerSave" placeholder="输入标题">
+                    <textarea ref="editor" class="input-content" v-model="editorData.content" @input="onInput" placeholder="写点什么..."></textarea>
                 </div>
             </div>
-        </div>
-
-        <div class="toolbar">
-            <div class="style-card" v-if="showStyle">
-                <span class="style-label">信纸主题</span>
-                <div class="dot-row">
-                    <div v-for="t in themes" :key="t" :class="['dot', t, {active: currentNote.attributes.theme == t}]" @click="updateAttr('theme', t)"></div>
-                </div>
-<span class="style-label">正文字体</span>
-<select v-model="currentNote.attributes.font" @change="doSave" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ddd; margin-bottom:15px;">
-    <option value="font-sans">标准黑体 (现代)</option>
-    <option value="font-wenkai">霞鹜文楷 (极荐)</option>
-    <option value="font-serif">经典宋体 (文学)</option>
-    <option value="font-kai">传统楷体 (典雅)</option>
-    <option value="font-art">艺术细体 (诗歌)</option>
-</select>
-                <span class="style-label">切分数量</span>
-                <select v-model="splitCount" style="width:100%; padding:8px; border-radius:4px; border:1px solid #ddd;">
-                    <option :value="1">1 张长图</option>
-                    <option :value="2">2 张长图</option>
-                    <option :value="3">3 张长图</option>
-                    <option :value="4">4 张长图</option>
-                </select>
-            </div>
-            <button class="fab" @click="showStyle=!showStyle">🎨</button>
-            <button class="fab" @click="deleteNote" style="color:var(--primary-red)">🗑️</button>
-            <button class="fab primary" @click="exportImages">✨</button>
         </div>
     </div>
 
-    <!-- 离屏渲染区 -->
-    <div id="staging-area"></div>
+    <!-- 移动端：单栏全屏切换 -->
+    <div v-if="isMobile && user" class="mobile-layout">
+        <!-- 列表视图 -->
+        <div v-if="!currentNote" class="mobile-list">
+            <div class="mobile-header">
+                <span style="font-weight:bold;">我的便签</span>
+                <button @click="createNote" style="color:var(--primary-red); background:none; border:none; font-size:16px; font-weight:bold;">+ 新建</button>
+            </div>
+            <div class="m-note-item" v-for="n in notes" :key="n.id" @click="openNote(n)">
+                <div class="t">{{ n.get('title') || '无标题' }}</div>
+                <div class="s">{{ n.get('content') || '暂无内容...' }}</div>
+            </div>
+            <div @click="logout" style="padding:30px; text-align:center; color:#999; font-size:12px;">退出账号</div>
+        </div>
+        <!-- 编辑视图 -->
+        <div v-else style="height:100%; display:flex; flex-direction:column;">
+            <div class="mobile-header">
+                <button @click="closeNote" style="color:var(--primary-red); background:none; border:none; font-size:16px;">‹ 列表</button>
+                <span style="font-size:12px; color:#999;">{{ saveStatus }}</span>
+                <button @click="deleteNote" style="color:#999; background:none; border:none;">删除</button>
+            </div>
+            <div class="mobile-content" :class="[currentNote.get('theme'), currentNote.get('font')]">
+                <div style="padding:20px;">
+                    <input class="input-title" v-model="editorData.title" @input="triggerSave" placeholder="标题">
+                    <textarea ref="editor" class="input-content" v-model="editorData.content" @input="onInput" placeholder="写点什么..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通用工具栏 (仅在编辑时显示) -->
+    <div class="toolbar" v-if="currentNote">
+        <div class="style-panel" v-if="showStyle">
+            <div style="font-size:11px; color:#999;">切换信纸</div>
+            <div class="dot-row">
+                <div v-for="t in themes" :key="t" :class="['dot', t, {active: currentNote.get('theme')==t}]" @click="updateAttr('theme', t)"></div>
+            </div>
+            <div style="font-size:11px; color:#999; margin-top:10px;">选择字体</div>
+            <select v-model="editorData.font" @change="updateAttr('font', editorData.font)" style="width:100%; margin-top:5px; padding:5px;">
+                <option value="font-sans">标准黑体</option>
+                <option value="font-wenkai">霞鹜文楷</option>
+                <option value="font-serif">经典宋体</option>
+            </select>
+            <div style="font-size:11px; color:#999; margin-top:10px;">长图分段</div>
+            <select v-model="splitCount" style="width:100%; margin-top:5px; padding:5px;">
+                <option :value="1">不切分 (单张)</option>
+                <option :value="2">智能切 2 张</option>
+                <option :value="3">智能切 3 张</option>
+            </select>
+        </div>
+        <button class="fab" @click="showStyle=!showStyle">🎨</button>
+        <button v-if="!isMobile" class="fab" @click="deleteNote">🗑️</button>
+        <button class="fab primary" @click="exportImages">✨</button>
+    </div>
+
+    <!-- 离屏渲染 -->
+    <div id="staging"></div>
 </div>
 
 <script>
-const { createApp, ref, onMounted, nextTick } = Vue;
+const { createApp, ref, onMounted, nextTick, reactive, watch } = Vue;
 
 const CONFIG = {
     appId: 'E1rPatvQJfGDx7FnsXpGTHN1-gzGzoHsz',
@@ -239,40 +212,43 @@ const CONFIG = {
 createApp({
     setup() {
         const user = ref(null);
+        const auth = reactive({ u: '', p: '' });
         const isReg = ref(false);
-        const auth = ref({ u: '', p: '' });
+        const loading = ref(false);
+        const processing = ref(false);
+        const isMobile = ref(window.innerWidth < 1024);
+        
         const notes = ref([]);
         const currentNote = ref(null);
-        const isMobileShow = ref(false);
-        const loading = ref(false);
-        const saving = ref(false);
-        const generating = ref(false);
-        const showStyle = ref(false);
-        const splitCount = ref(1);
-        const editor = ref(null);
+        const editorData = reactive({ title: '', content: '', theme: '', font: '' });
+        const saveStatus = ref('已同步云端');
         let saveTimer = null;
 
-        const themes = ['theme-white', 'theme-grid', 'theme-retro', 'theme-dark', 'theme-kraft', 'theme-bamboo', 'theme-navy'];
+        const showStyle = ref(false);
+        const splitCount = ref(1);
+        const themes = ['theme-white', 'theme-grid', 'theme-retro', 'theme-kraft'];
+        const editor = ref(null);
 
         onMounted(() => {
             AV.init(CONFIG);
             user.value = AV.User.current();
             if (user.value) loadNotes();
+            window.addEventListener('resize', () => isMobile.value = window.innerWidth < 1024);
         });
 
         const handleAuth = async () => {
-            if (!auth.value.u || !auth.value.p) return alert("信息不完整");
+            if (!auth.u || !auth.p) return alert("请输入完整信息");
             loading.value = true;
             try {
                 if (isReg.value) {
                     const u = new AV.User();
-                    u.setUsername(auth.value.u); u.setPassword(auth.value.p);
+                    u.setUsername(auth.u); u.setPassword(auth.p);
                     user.value = await u.signUp();
                 } else {
-                    user.value = await AV.User.logIn(auth.value.u, auth.value.p);
+                    user.value = await AV.User.logIn(auth.u, auth.p);
                 }
                 loadNotes();
-            } catch (e) { alert(e.message); }
+            } catch (e) { alert("登录失败：" + e.message); }
             finally { loading.value = false; }
         };
 
@@ -281,14 +257,15 @@ createApp({
             try {
                 const q = new AV.Query('Note');
                 q.descending('updatedAt');
-                notes.value = await q.find();
+                const res = await q.find();
+                // 数据清洗：只保留有 ID 且不是空的便签
+                notes.value = res.filter(n => n.id);
                 
-                const lastId = localStorage.getItem('last_note_id');
+                // 自动恢复最后一次编辑
+                const lastId = localStorage.getItem('sn_last_id');
                 if (lastId) {
                     const last = notes.value.find(n => n.id === lastId);
                     if (last) openNote(last);
-                } else if (window.innerWidth > 768 && notes.value.length > 0) {
-                    openNote(notes.value[0]);
                 }
             } finally { loading.value = false; }
         };
@@ -299,23 +276,33 @@ createApp({
                 const Note = AV.Object.extend('Note');
                 const n = new Note();
                 n.set('title', ''); n.set('content', ''); n.set('theme', 'theme-white'); n.set('font', 'font-sans');
+                
+                // 关键修复：显式设置 ACL 确保同账号全平台可见
                 const acl = new AV.ACL();
-                acl.setReadAccess(user.value, true); acl.setWriteAccess(user.value, true);
+                acl.setReadAccess(user.value, true);
+                acl.setWriteAccess(user.value, true);
                 n.setACL(acl);
+
                 const saved = await n.save();
                 notes.value.unshift(saved);
                 openNote(saved);
-            } finally { loading.value = false; }
+            } catch (e) { alert("新建失败"); }
+            finally { loading.value = false; }
         };
 
         const openNote = (n) => {
             currentNote.value = n;
-            localStorage.setItem('last_note_id', n.id);
-            isMobileShow.value = true;
+            editorData.title = n.get('title') || '';
+            editorData.content = n.get('content') || '';
+            editorData.theme = n.get('theme') || 'theme-white';
+            editorData.font = n.get('font') || 'font-sans';
+            localStorage.setItem('sn_last_id', n.id);
             nextTick(autoHeight);
         };
 
-        const onInput = () => { autoHeight(); doSave(); };
+        const closeNote = () => { currentNote.value = null; };
+
+        const onInput = () => { autoHeight(); triggerSave(); };
         const autoHeight = () => {
             if (editor.value) {
                 editor.value.style.height = 'auto';
@@ -323,106 +310,89 @@ createApp({
             }
         };
 
-        const doSave = () => {
+        const triggerSave = () => {
+            saveStatus.ref = '同步中...';
             if (saveTimer) clearTimeout(saveTimer);
-            saving.value = true;
             saveTimer = setTimeout(async () => {
-                try { await currentNote.value.save(); } 
-                finally { saving.value = false; }
-            }, 800);
+                if (!currentNote.value) return;
+                try {
+                    currentNote.value.set('title', editorData.title);
+                    currentNote.value.set('content', editorData.content);
+                    await currentNote.value.save();
+                    saveStatus.value = '已同步云端';
+                } catch (e) { saveStatus.value = '保存失败，请检查网络'; }
+            }, 1000);
         };
 
         const updateAttr = (k, v) => {
+            if (!currentNote.value) return;
             currentNote.value.set(k, v);
-            doSave();
+            editorData[k] = v;
+            triggerSave();
         };
 
         const deleteNote = async () => {
-            if (!confirm("确定要删除吗？")) return;
-            const id = currentNote.value.id;
+            if (!confirm("确定删除吗？")) return;
             try {
+                const id = currentNote.value.id;
                 await currentNote.value.destroy();
                 notes.value = notes.value.filter(n => n.id !== id);
                 currentNote.value = null;
-                localStorage.removeItem('last_note_id');
-                isMobileShow.value = false;
+                localStorage.removeItem('sn_last_id');
             } catch (e) { alert("删除失败"); }
         };
 
         const exportImages = async () => {
-            const count = parseInt(splitCount.value);
-            const title = currentNote.value.attributes.title || '无标题';
-            const content = currentNote.value.attributes.content || '';
-            const theme = currentNote.value.attributes.theme || 'theme-white';
-            const font = currentNote.value.attributes.font || 'font-sans';
-            
-            const paragraphs = content.split('\n');
-            const pPerPage = Math.ceil(paragraphs.length / count);
-            
-            generating.value = true;
+            processing.value = true;
             showStyle.value = false;
-            const staging = document.getElementById('staging-area');
+            const staging = document.getElementById('staging');
             staging.innerHTML = '';
+            
+            const count = parseInt(splitCount.value);
+            const paragraphs = editorData.content.split('\n');
+            const pPerPage = Math.ceil(paragraphs.length / count);
 
             try {
-                let currentPIndex = 0;
                 for (let i = 0; i < count; i++) {
-                    const pageNode = document.createElement('div');
-                    pageNode.className = `paper ${theme} ${font}`;
-                    pageNode.style.boxShadow = 'none';
+                    const node = document.createElement('div');
+                    node.className = `paper ${editorData.theme} ${editorData.font}`;
+                    node.style.boxShadow = 'none';
                     
-                    let html = '';
+                    let inner = '';
                     if (i === 0) {
-                        // 移除作者水印，恢复舒适高度
-                        html += `<div class="art-header"><div class="art-title">${title}</div></div>`;
+                        inner += `<div class="export-header"><div class="export-title">${editorData.title || '无标题'}</div></div>`;
                     } else {
-                        html += `<div style="height:80px"></div>`;
+                        inner += `<div style="height:60px"></div>`;
                     }
 
-                    html += '<div class="paper-body art-content" style="padding-top:0">';
-                    const slice = paragraphs.slice(currentPIndex, currentPIndex + pPerPage);
-                    slice.forEach(txt => {
-                        html += txt.trim() === '' ? '<p><br></p>' : `<p>${txt}</p>`;
+                    inner += '<div class="paper-body">';
+                    paragraphs.slice(i * pPerPage, (i + 1) * pPerPage).forEach(p => {
+                        inner += `<p style="margin-bottom:20px; font-size:18px;">${p || '<br>'}</p>`;
                     });
-                    html += '</div>';
+                    inner += '</div>';
+                    
+                    if (i === count - 1) inner += `<div style="text-align:center; padding:40px; opacity:0.3; font-size:12px; letter-spacing:2px;">SMARTISAN NOTES</div>`;
 
-                    if (i === count - 1) {
-                        html += `<div class="art-footer">Generated By Smartisan</div>`;
-                    } else {
-                        html += `<div style="height:60px"></div>`;
-                    }
-
-                    pageNode.innerHTML = html;
-                    staging.appendChild(pageNode);
-
+                    node.innerHTML = inner;
+                    staging.appendChild(node);
                     await new Promise(r => setTimeout(r, 400));
-
-                    const canvas = await html2canvas(pageNode, {
-                        scale: 2.5, 
-                        useCORS: true,
-                        backgroundColor: getComputedStyle(pageNode).backgroundColor
-                    });
-
+                    
+                    const canvas = await html2canvas(node, { scale: 2.5, useCORS: true });
                     const link = document.createElement('a');
-                    link.download = `${title}_Part${i + 1}.png`;
+                    link.download = `Note_${i+1}.png`;
                     link.href = canvas.toDataURL("image/png");
                     link.click();
-
-                    currentPIndex += pPerPage;
-                    staging.removeChild(pageNode);
+                    staging.removeChild(node);
                 }
-            } catch (e) {
-                alert("导出失败: " + e.message);
-            } finally {
-                generating.value = false;
-            }
+            } catch (e) { alert("导出失败"); }
+            finally { processing.value = false; }
         };
 
-        const logout = () => { AV.User.logOut(); localStorage.removeItem('last_note_id'); location.reload(); };
+        const logout = () => { AV.User.logOut(); localStorage.clear(); location.reload(); };
 
         return {
-            user, isReg, auth, notes, currentNote, isMobileShow, loading, saving, generating, showStyle, splitCount, editor, themes,
-            handleAuth, createNote, openNote, onInput, updateAttr, doSave, deleteNote, exportImages, logout
+            user, auth, isReg, loading, processing, isMobile, notes, currentNote, editorData, saveStatus, themes, showStyle, splitCount, editor,
+            handleAuth, createNote, openNote, closeNote, onInput, updateAttr, triggerSave, deleteNote, exportImages, logout
         };
     }
 }).mount('#app');
